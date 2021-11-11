@@ -119,17 +119,24 @@ class ThermalParams:
 
     :param ξ: the thermal stochastic process
     :param τ: the time points of the trajectory
-    :param dx: step size for the calculation of the derivative of ξ
-    :param order: order the calculation of the derivative of ξ, must be odd,
-                  see :py:`scipy.misc.derivative`
+    :param num_deriv: whether to calculate the derivative of the
+        process numerically or use it directly from the
+        :py:`StocProc`.  The latter alternative is strongly preferred
+        if available.
+    :param dx: step size for the calculation of the derivative of ξ,
+        only relevant if numerical differentiation is used
+    :param order: order the calculation of the derivative of ξ, must
+        be odd, see :py:`scipy.misc.derivative`, only relevant if
+        numerical differentiation is used
     """
 
-    __slots__ = ["ξ", "τ", "dx", "order"]
+    __slots__ = ["ξ", "τ", "dx", "order", "num_deriv"]
 
     def __init__(
         self,
         ξ: StocProc,
         τ: np.ndarray,
+        num_deriv: bool = False,
         dx: float = 1e-3,
         order: int = 3,
     ):
@@ -144,6 +151,7 @@ class ThermalParams:
         self.τ = τ
         self.dx = 1e-3
         self.order = order
+        self.num_deriv = num_deriv
 
 
 class ThermalRunParams:
@@ -154,12 +162,6 @@ class ThermalRunParams:
         process
     :param ξ_coeff: the coefficients of the realization of the thermal
         stochastic process
-    :param num_deriv: whether to calculate the derivative of the
-        process numerically or use it directly from the
-        :py:`StocProc`.  The latter alternative is strongly preferred
-        if available.
-
-
 
     :attr ξ_dot: the process derivative evaluated at τ :attr
         ξ_values: the process evaluated at τ
@@ -167,9 +169,7 @@ class ThermalRunParams:
 
     __slots__ = ["ξ_coeff", "ξ_dot", "ξ_values"]
 
-    def __init__(
-        self, therm_params: ThermalParams, ξ_coeff: np.ndarray, num_deriv: bool = False
-    ):
+    def __init__(self, therm_params: ThermalParams, ξ_coeff: np.ndarray):
         """Class initializer.  Computes the most useful attributes
         ahead of time.
 
@@ -188,7 +188,7 @@ class ThermalRunParams:
                 dx=therm_params.dx,
                 order=therm_params.order,
             )
-            if num_deriv
+            if therm_params.num_deriv
             else therm_params.ξ.dot(therm_params.τ)
         )
 
@@ -232,7 +232,7 @@ def flow_trajectory_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarr
     :returns: the value of the flow for each time step
     """
 
-    flow = 2 * ((np.sum(run.ψ_coup.conj() * run.ψ_0)) * therm_run.ξ_dot).real
+    flow = 2 * ((np.sum(run.ψ_coup.conj() * run.ψ_0, axis=1)) * therm_run.ξ_dot).real
     return run.normalize_maybe(flow)
 
 
@@ -255,19 +255,32 @@ def flow_trajectory(
 
 
 def interaction_energy_coupling(run: HOPSRun, params: SystemParams) -> np.ndarray:
-    """Calculates the interaction energy expectation value for a
-    trajectory.
+    """Calculates the coupling part of the interaction energy
+    expectation value for a trajectory.
 
     :param run: a parameter object, see :py:`HOPSRun`
     :param params: a parameter object for the system, see
         :py:`SystemParams`
 
-    :returns: the value of the interaction energy for each time step
+    :returns: the value of the coupling interaction energy for each time step
     """
 
     ψ_hops = util.mulitply_hierarchy(-1j * params.G * params.bcf_scale, run.ψ_1)
     energy = util.dot_with_hierarchy(run.ψ_coup.conj(), ψ_hops).real * 2
     return run.normalize_maybe(energy)
+
+
+def interaction_energy_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarray:
+    r"""Calculates the thermal part of the interaction energy.
+
+    :param run: a parameter object, see :py:`HOPSRun`
+    :param therm_run: a parameter object, see :py:`ThermalParams`
+    :returns: the value of the thermal interaction for each time step
+    """
+
+    energy = ((run.ψ_coup.conj() * run.ψ_0).sum(axis=1) * therm_run.ξ_dot).real * 2
+
+    return energy
 
 
 ###############################################################################
@@ -334,9 +347,8 @@ def interaction_energy_ensemble(
         run = HOPSRun(ψ_0s[i], ψ_1s[i], params)
         energy += interaction_energy_coupling(run, params)
 
-        # TODO: Implement thermal
-        # if therm_args:
-        #     therm_run = ThermalRunParams(therm_args[1], therm_args[0][i])
-        #     flow += flow_trajectory_therm(run, therm_run)
+        if therm_args:
+            therm_run = ThermalRunParams(therm_args[1], therm_args[0][i])
+            energy += interaction_energy_therm(run, therm_run)
 
     return energy / N
