@@ -8,7 +8,7 @@ The parameter objects are passed separately but may depend on each other.
 
 import numpy as np
 import scipy.misc
-import hopsflow.util as util
+import util as util
 from typing import Optional, Tuple
 from stocproc import StocProc
 
@@ -70,7 +70,7 @@ class HOPSRun:
                  - will be reshaped to ``(time, hierarchy-width, dim_state)``
                  - will automatically be rescaled if scaling factors ``g`` are given
 
-    :attr norm: the norm of the state, may be ``None`` for linear HOPS
+    :attr norm_squared: the squared norm of the state, may be ``None`` for linear HOPS
     :attr ψ_coup: ψ_0 with the coupling operator applied
     :attr hierarch_width: the width of the hierarchy (number of exponential terms)
     :attr t_steps: the number of timesteps
@@ -80,9 +80,9 @@ class HOPSRun:
     __slots__ = [
         "ψ_0",
         "ψ_1",
-        "norm",
+        "norm_squared",
         "ψ_coup",
-        "hierarch_width",
+        "hierarchy_width",
         "t_steps",
         "nonlinear",
     ]
@@ -93,13 +93,12 @@ class HOPSRun:
 
         self.ψ_0 = ψ_0
         self.nonlinear = params.nonlinear
-        self.norm = np.sum(self.ψ_0.conj() * self.ψ_0, axis=1)
-
+        self.norm_squared = np.sum(self.ψ_0.conj() * self.ψ_0, axis=1).real
         self.ψ_coup = util.apply_operator(self.ψ_0, params.L)
         self.t_steps = self.ψ_0.shape[0]
         self.hierarchy_width = ψ_1.shape[1] // params.dim
 
-        ψ_1_rs: np.ndarray = ψ_1.reshape(self.t_steps, self.hierarchy_width, params.dim)
+        ψ_1_rs = ψ_1.reshape(self.t_steps, self.hierarchy_width, params.dim)
 
         if params.g:
             ψ_1_rs /= params.g[None, :, None]
@@ -109,7 +108,7 @@ class HOPSRun:
     def normalize_maybe(self, array: np.ndarray):
         """Normalize the ``array`` if nonlinear HOPS is being used."""
         if self.nonlinear:
-            return array / self.norm
+            return array / self.norm_squared
 
         return array
 
@@ -151,22 +150,27 @@ class ThermalRunParams:
     """A parameter object to hold information abouth the thermal
     stochastic process.
 
-    :param therm_params: information abouth the thermal stochastic process
-    :param ξ_coeff: the coefficients of the realization of the
-                    thermal stochastic process
+    :param therm_params: information abouth the thermal stochastic
+        process
+    :param ξ_coeff: the coefficients of the realization of the thermal
+        stochastic process
+    :param num_deriv: whether to calculate the derivative of the
+        process numerically or use it directly from the
+        :py:`StocProc`.  The latter alternative is strongly preferred
+        if available.
 
-    :attr ξ_dot: the process derivative evaluated at τ
-    :attr ξ_values: the process evaluated at τ
+
+
+    :attr ξ_dot: the process derivative evaluated at τ :attr
+        ξ_values: the process evaluated at τ
     """
 
     __slots__ = ["ξ_coeff", "ξ_dot", "ξ_values"]
 
     def __init__(
-        self,
-        therm_params: ThermalParams,
-        ξ_coeff: np.ndarray,
+        self, therm_params: ThermalParams, ξ_coeff: np.ndarray, num_deriv: bool = False
     ):
-        """Class initializer. Computes the most useful attributes
+        """Class initializer.  Computes the most useful attributes
         ahead of time.
 
         The process ξ is intialized with ξ_coeff and its derivative is
@@ -177,8 +181,15 @@ class ThermalRunParams:
 
         therm_params.ξ.new_process(self.ξ_coeff)
         self.ξ_values = therm_params.ξ(therm_params.τ)
-        self.ξ_dot = scipy.misc.derivative(
-            therm_params.ξ, therm_params.τ, dx=therm_params.dx, order=therm_params.order
+        self.ξ_dot: np.ndarray = (
+            scipy.misc.derivative(
+                therm_params.ξ,
+                therm_params.τ,
+                dx=therm_params.dx,
+                order=therm_params.order,
+            )
+            if num_deriv
+            else therm_params.ξ.dot(therm_params.τ)
         )
 
 
@@ -228,7 +239,7 @@ def flow_trajectory_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarr
 def flow_trajectory(
     run: HOPSRun, params: SystemParams, therm_run: Optional[ThermalRunParams]
 ) -> np.ndarray:
-    r"""Calculates the
+    r"""Calculates the total energy flow for a trajectory.
 
     :param run: a parameter object, see :py:`HOPSRun`
     :param therm: a parameter object, see :py:`ThermalParams`
@@ -244,9 +255,19 @@ def flow_trajectory(
 
 
 def interaction_energy_coupling(run: HOPSRun, params: SystemParams) -> np.ndarray:
-    ψ_hops = util.mulitply_hierarchy(-(1j * params.G * params.bcf_scale), run.ψ_1)
+    """Calculates the interaction energy expectation value for a
+    trajectory.
 
-    return util.dot_with_hierarchy(run.ψ_coup.conj(), ψ_hops).real
+    :param run: a parameter object, see :py:`HOPSRun`
+    :param params: a parameter object for the system, see
+        :py:`SystemParams`
+
+    :returns: the value of the interaction energy for each time step
+    """
+
+    ψ_hops = util.mulitply_hierarchy(-1j * params.G * params.bcf_scale, run.ψ_1)
+    energy = util.dot_with_hierarchy(run.ψ_coup.conj(), ψ_hops).real * 2
+    return run.normalize_maybe(energy)
 
 
 ###############################################################################
@@ -258,26 +279,64 @@ def heat_flow_ensemble(
     ψ_0s: np.ndarray,
     ψ_1s: np.ndarray,
     params: SystemParams,
-    therm_args: Optional[Tuple[np.ndarray, ThermalParams]],
+    therm_args: Optional[Tuple[np.ndarray, ThermalParams]] = None,
 ) -> np.ndarray:
     """Calculates the heat flow for an ensemble of trajectories.
 
     :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``
-    :param ψ_0s: array of the first HOPS hierarchy states ``(N, time, hierarchy-width * dim-state)``
-    :param params: a parameter object for the system, see :py:`SystemParams`
-    :param therm_args: the realization parameters and the parameter object, see :py:`ThermalParams`
+    :param ψ_0s: array of the first HOPS hierarchy states ``(N, time,
+        hierarchy-width * dim-state)``
+    :param params: a parameter object for the system, see
+        :py:`SystemParams`
+    :param therm_args: the realization parameters and the parameter
+        object, see :py:`ThermalParams`
+
     :returns: the value of the flow for each time step
     """
 
     N = ψ_0s.shape[0]
-    flow = np.empty(N, dtype=np.real)
+    flow = np.zeros(ψ_0s.shape[1])
 
     for i in range(0, N):
         run = HOPSRun(ψ_0s[i], ψ_1s[i], params)
-        flow[i] = flow_trajectory_coupling(run, params)
+        flow += flow_trajectory_coupling(run, params)
 
         if therm_args:
             therm_run = ThermalRunParams(therm_args[1], therm_args[0][i])
-            flow[i] = flow_trajectory_therm(run, therm_run)
+            flow += flow_trajectory_therm(run, therm_run)
 
     return flow / N
+
+
+def interaction_energy_ensemble(
+    ψ_0s: np.ndarray,
+    ψ_1s: np.ndarray,
+    params: SystemParams,
+    therm_args: Optional[Tuple[np.ndarray, ThermalParams]] = None,
+) -> np.ndarray:
+    """Calculates the heat flow for an ensemble of trajectories.
+
+    :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``
+    :param ψ_0s: array of the first HOPS hierarchy states ``(N, time,
+        hierarchy-width * dim-state)``
+    :param params: a parameter object for the system, see
+        :py:`SystemParams`
+    :param therm_args: the realization parameters and the parameter
+        object, see :py:`ThermalParams`
+
+    :returns: the value of the flow for each time step
+    """
+
+    N = ψ_0s.shape[0]
+    energy = np.zeros(ψ_0s.shape[1])
+
+    for i in range(0, N):
+        run = HOPSRun(ψ_0s[i], ψ_1s[i], params)
+        energy += interaction_energy_coupling(run, params)
+
+        # TODO: Implement thermal
+        # if therm_args:
+        #     therm_run = ThermalRunParams(therm_args[1], therm_args[0][i])
+        #     flow += flow_trajectory_therm(run, therm_run)
+
+    return energy / N
