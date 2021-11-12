@@ -9,7 +9,7 @@ The parameter objects are passed separately but may depend on each other.
 import numpy as np
 import scipy.misc
 import util as util
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Iterator, Union
 from stocproc import StocProc
 
 
@@ -232,8 +232,14 @@ def flow_trajectory_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarr
     :returns: the value of the flow for each time step
     """
 
-    flow = 2 * ((np.sum(run.ψ_coup.conj() * run.ψ_0, axis=1)) * therm_run.ξ_dot).real
-    return run.normalize_maybe(flow)
+    flow = (
+        2
+        * (
+            run.normalize_maybe(np.sum(run.ψ_coup.conj() * run.ψ_0, axis=1))
+            * therm_run.ξ_dot
+        ).real
+    )
+    return flow
 
 
 def flow_trajectory(
@@ -278,7 +284,10 @@ def interaction_energy_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.nd
     :returns: the value of the thermal interaction for each time step
     """
 
-    energy = ((run.ψ_coup.conj() * run.ψ_0).sum(axis=1) * therm_run.ξ_dot).real * 2
+    energy = (
+        run.normalize_maybe((run.ψ_coup.conj() * run.ψ_0).sum(axis=1))
+        * therm_run.ξ_values
+    ).real * 2
 
     return energy
 
@@ -288,11 +297,33 @@ def interaction_energy_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.nd
 ###############################################################################
 
 
-def heat_flow_ensemble(
-    ψ_0s: np.ndarray,
-    ψ_1s: np.ndarray,
+def _heat_flow_ensemble_body(
+    ψs: Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
     params: SystemParams,
-    therm_args: Optional[Tuple[np.ndarray, ThermalParams]] = None,
+    thermal: ThermalParams,
+):
+    ψ_0, ψ_1 = ψs[0:2]
+
+    with_therm = len(ψs) == 3
+    if with_therm:
+        ys = ψs[-1]
+
+    run = HOPSRun(ψ_0, ψ_1, params)
+    flow = flow_trajectory_coupling(run, params)
+
+    if with_therm:
+        therm_run = ThermalRunParams(thermal, ys)
+        flow += flow_trajectory_therm(run, therm_run)
+
+    return flow
+
+
+def heat_flow_ensemble(
+    ψ_0s: Iterator[np.ndarray],
+    ψ_1s: Iterator[np.ndarray],
+    params: SystemParams,
+    N: Optional[int],
+    therm_args: Optional[Tuple[Iterator[np.ndarray], ThermalParams]] = None,
 ) -> np.ndarray:
     """Calculates the heat flow for an ensemble of trajectories.
 
@@ -307,25 +338,41 @@ def heat_flow_ensemble(
     :returns: the value of the flow for each time step
     """
 
-    N = ψ_0s.shape[0]
-    flow = np.zeros(ψ_0s.shape[1])
+    return util.ensemble_mean(
+        iter(zip(ψ_0s, ψ_1s, therm_args[0])) if therm_args else iter(zip(ψ_0s, ψ_1s)),
+        _heat_flow_ensemble_body,
+        N,
+        (params, therm_args[1] if therm_args else None),
+    )
 
-    for i in range(0, N):
-        run = HOPSRun(ψ_0s[i], ψ_1s[i], params)
-        flow += flow_trajectory_coupling(run, params)
 
-        if therm_args:
-            therm_run = ThermalRunParams(therm_args[1], therm_args[0][i])
-            flow += flow_trajectory_therm(run, therm_run)
+def _interaction_energy_ensemble_body(
+    ψs: Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
+    params: SystemParams,
+    thermal: ThermalParams,
+):
+    ψ_0, ψ_1 = ψs[0:2]
 
-    return flow / N
+    with_therm = len(ψs) == 3
+    if with_therm:
+        ys = ψs[-1]
+
+    run = HOPSRun(ψ_0, ψ_1, params)
+    energy = interaction_energy_coupling(run, params)
+
+    if with_therm:
+        therm_run = ThermalRunParams(thermal, ys)
+        energy += interaction_energy_therm(run, therm_run)
+
+    return energy
 
 
 def interaction_energy_ensemble(
-    ψ_0s: np.ndarray,
-    ψ_1s: np.ndarray,
+    ψ_0s: Iterator[np.ndarray],
+    ψ_1s: Iterator[np.ndarray],
     params: SystemParams,
-    therm_args: Optional[Tuple[np.ndarray, ThermalParams]] = None,
+    N: Optional[int],
+    therm_args: Optional[Tuple[Iterator[np.ndarray], ThermalParams]] = None,
 ) -> np.ndarray:
     """Calculates the heat flow for an ensemble of trajectories.
 
@@ -340,15 +387,9 @@ def interaction_energy_ensemble(
     :returns: the value of the flow for each time step
     """
 
-    N = ψ_0s.shape[0]
-    energy = np.zeros(ψ_0s.shape[1])
-
-    for i in range(0, N):
-        run = HOPSRun(ψ_0s[i], ψ_1s[i], params)
-        energy += interaction_energy_coupling(run, params)
-
-        if therm_args:
-            therm_run = ThermalRunParams(therm_args[1], therm_args[0][i])
-            energy += interaction_energy_therm(run, therm_run)
-
-    return energy / N
+    return util.ensemble_mean(
+        iter(zip(ψ_0s, ψ_1s, therm_args[0])) if therm_args else iter(zip(ψ_0s, ψ_1s)),
+        _interaction_energy_ensemble_body,
+        N,
+        (params, therm_args[1] if therm_args else None),
+    )
