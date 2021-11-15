@@ -106,9 +106,7 @@ def integrate_array(arr: np.ndarray, t: np.ndarray) -> np.ndarray:
     along ``t``.
     """
 
-    return np.array(
-        [0] + [scipy.integrate.simpson(arr[0:n], t[0:n]) for n in range(1, len(t))]
-    )
+    return scipy.integrate.cumulative_trapezoid(arr, t, initial=0)
 
 
 ###############################################################################
@@ -163,7 +161,7 @@ def ensemble_mean(
         result_iter = pool.imap_unordered(
             _ensemble_mean_call,
             itertools.islice(arg_iter, None, N - 1 if N else None),
-            100,
+            1,
         )
 
         n = 1
