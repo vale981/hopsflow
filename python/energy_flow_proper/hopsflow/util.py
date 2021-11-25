@@ -4,7 +4,9 @@ import functools
 import multiprocessing
 import numpy as np
 import scipy
-from typing import Iterator, Optional, Any, Tuple, Callable, Dict
+from typing import Iterator, Optional, Any, Callable, Union
+from lmfit import minimize, Parameters
+from numpy.polynomial import Polynomial
 
 
 def apply_operator(ψ: np.ndarray, op: np.ndarray) -> np.ndarray:
@@ -24,7 +26,7 @@ def sandwhich_operator(
     Applies the operator ``op`` to each element of the time
          series ψ of the dimensions ``(*, dim)`` where ``dim`` is the
          hilbert space dimension and sandwiches ``ψ`` onto it from the
-         left.  If ``normalize`` is :py:`True` then the value will be
+         left.  If ``normalize`` is :any:`True` then the value will be
          divided by the squared norm.
     """
 
@@ -74,7 +76,7 @@ def mulitply_hierarchy(left: np.ndarray, right: np.ndarray) -> np.ndarray:
 
 
 def dot_with_hierarchy(left: np.ndarray, right: np.ndarray) -> np.ndarray:
-    r"""Calculates $\sum_k \langle\mathrm{left} | \right^{(e_k)}$ for
+    r"""Calculates :math:`\sum_k \langle\mathrm{left} | \mathrm{right}^{(e_k)}\rangle` for
     each time step.
 
     :param left: array of shape ``(time-steps, system-dimension, hierarchy-width,)``
@@ -113,8 +115,8 @@ def integrate_array(arr: np.ndarray, t: np.ndarray) -> np.ndarray:
 #                                Ensemble Mean                                #
 ###############################################################################
 
-_ENSEMBLE_MEAN_ARGS: Tuple = tuple()
-_ENSEMBLE_MEAN_KWARGS: Dict = dict()
+_ENSEMBLE_MEAN_ARGS: tuple = tuple()
+_ENSEMBLE_MEAN_KWARGS: dict = dict()
 
 
 def _ENSEMBLE_FUNC(_, *args, **kwargs):
@@ -128,7 +130,7 @@ def _ensemble_mean_call(arg) -> np.ndarray:
     return _ENSEMBLE_FUNC(arg, *_ENSEMBLE_MEAN_ARGS, **_ENSEMBLE_MEAN_KWARGS)
 
 
-def _ensemble_mean_init(func: Callable, args: Tuple, kwargs: Dict):
+def _ensemble_mean_init(func: Callable, args: tuple, kwargs: dict):
     global _ENSEMBLE_FUNC
     global _ENSEMBLE_MEAN_ARGS
     global _ENSEMBLE_MEAN_KWARGS
@@ -143,8 +145,8 @@ def ensemble_mean(
     arg_iter: Iterator[Any],
     function: Callable[..., np.ndarray],
     N: Optional[int] = None,
-    const_args: Tuple = tuple(),
-    const_kwargs: Dict = dict(),
+    const_args: tuple = tuple(),
+    const_kwargs: dict = dict(),
     n_proc: Optional[int] = None,
 ):
 
@@ -170,3 +172,62 @@ def ensemble_mean(
             n += 1
 
     return result / n
+
+
+def fit_α(
+    α: Callable[[np.ndarray], np.ndarray],
+    n: int,
+    t_max: float,
+    support_points: Union[int, np.ndarray] = 1000,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Fit the BCF ``α`` to a sum of ``n`` exponentials up to
+    ``t_max`` using a number of ``support_points``.
+    """
+
+    def residual(fit_params, x, data):
+        resid = 0
+        w = np.array([fit_params[f"w{i}"] for i in range(n)]) + 1j * np.array(
+            [fit_params[f"wi{i}"] for i in range(n)]
+        )
+        g = np.array([fit_params[f"g{i}"] for i in range(n)]) + 1j * np.array(
+            [fit_params[f"gi{i}"] for i in range(n)]
+        )
+        resid = data - α_apprx(x, g, w)
+
+        return resid.view(float)
+
+    fit_params = Parameters()
+    for i in range(n):
+        fit_params.add(f"g{i}", value=0.1)
+        fit_params.add(f"gi{i}", value=0.1)
+        fit_params.add(f"w{i}", value=0.1)
+        fit_params.add(f"wi{i}", value=0.1)
+
+    ts = np.asarray(support_points)
+    if ts.size < 2:
+        ts = np.linspace(0, t_max, support_points)
+
+    out = minimize(residual, fit_params, args=(ts, α(ts)))
+
+    w = np.array([out.params[f"w{i}"] for i in range(n)]) + 1j * np.array(
+        [out.params[f"wi{i}"] for i in range(n)]
+    )
+    g = np.array([out.params[f"g{i}"] for i in range(n)]) + 1j * np.array(
+        [out.params[f"gi{i}"] for i in range(n)]
+    )
+
+    return w, g
+
+
+def except_element(array: np.ndarray, index: int) -> np.ndarray:
+    """Returns the ``array`` except the element with ``index``."""
+    mask = [i != index for i in range(array.size)]
+    return array[mask]
+
+
+def poly_real(p: Polynomial) -> Polynomial:
+    """Return the real part of ``p``."""
+    new = p.copy()
+    new.coef = p.coef.real
+    return new

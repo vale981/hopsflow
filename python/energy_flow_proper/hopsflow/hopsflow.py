@@ -8,7 +8,7 @@ The parameter objects are passed separately but may depend on each other.
 
 import numpy as np
 import scipy.misc
-import util as util
+from . import util
 from typing import Optional, Tuple, Iterator, Union
 from stocproc import StocProc
 
@@ -21,6 +21,7 @@ from stocproc import StocProc
 class SystemParams:
     """A parameter object to hold information about the physical
     system and global HOPS parameters.
+
     :param L: the coupling operator as system matrix
     :param G: the coupling factors in the exponential expansion of the BCF
     :param W: the exponents in the exponential expansion of the BCF
@@ -121,12 +122,12 @@ class ThermalParams:
     :param τ: the time points of the trajectory
     :param num_deriv: whether to calculate the derivative of the
         process numerically or use it directly from the
-        :py:`StocProc`.  The latter alternative is strongly preferred
+        :class:`StocProc`.  The latter alternative is strongly preferred
         if available.
     :param dx: step size for the calculation of the derivative of ξ,
         only relevant if numerical differentiation is used
     :param order: order the calculation of the derivative of ξ, must
-        be odd, see :py:`scipy.misc.derivative`, only relevant if
+        be odd, see :any:`scipy.misc.derivative`, only relevant if
         numerical differentiation is used
     """
 
@@ -205,9 +206,9 @@ def flow_trajectory_coupling(
     r"""Calculates the $\langle L^\dagger \dot{B} + c.c.$ part of the
     energy flow for a single trajectory.
 
-    :param run: a parameter object for the current trajectory, see :py:`HOPSRun`
-    :param therma_run: a parameter object for the current thermal process, see :py:`HOPSRun`
-    :param params: a parameter object for the system, see :py:`SystemParams`
+    :param run: a parameter object for the current trajectory, see :any:`HOPSRun`
+    :param therma_run: a parameter object for the current thermal process, see :any:`HOPSRun`
+    :param params: a parameter object for the system, see :any:`SystemParams`
 
     :returns: the value of the flow for each time step
     """
@@ -227,8 +228,8 @@ def flow_trajectory_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarr
     r"""Calculates the $\langle L^\dagger \dot{\xi} + c.c.$ part of the
     energy flow for a single trajectory.
 
-    :param run: a parameter object, see :py:`HOPSRun`
-    :param therm_run: a parameter object, see :py:`ThermalRunParams`
+    :param run: a parameter object, see :any:`HOPSRun`
+    :param therm_run: a parameter object, see :any:`ThermalRunParams`
     :returns: the value of the flow for each time step
     """
 
@@ -247,9 +248,9 @@ def flow_trajectory(
 ) -> np.ndarray:
     r"""Calculates the total energy flow for a trajectory.
 
-    :param run: a parameter object, see :py:`HOPSRun`
-    :param therm: a parameter object, see :py:`ThermalParams`
-    :param params: a parameter object for the system, see :py:`SystemParams`
+    :param run: a parameter object, see :any:`HOPSRun`
+    :param therm: a parameter object, see :any:`ThermalParams`
+    :param params: a parameter object for the system, see :any:`SystemParams`
     :returns: the value of the flow for each time step
     """
 
@@ -264,9 +265,9 @@ def interaction_energy_coupling(run: HOPSRun, params: SystemParams) -> np.ndarra
     """Calculates the coupling part of the interaction energy
     expectation value for a trajectory.
 
-    :param run: a parameter object, see :py:`HOPSRun`
+    :param run: a parameter object, see :any:`HOPSRun`
     :param params: a parameter object for the system, see
-        :py:`SystemParams`
+        :any:`SystemParams`
 
     :returns: the value of the coupling interaction energy for each time step
     """
@@ -279,8 +280,8 @@ def interaction_energy_coupling(run: HOPSRun, params: SystemParams) -> np.ndarra
 def interaction_energy_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarray:
     r"""Calculates the thermal part of the interaction energy.
 
-    :param run: a parameter object, see :py:`HOPSRun`
-    :param therm_run: a parameter object, see :py:`ThermalParams`
+    :param run: a parameter object, see :any:`HOPSRun`
+    :param therm_run: a parameter object, see :any:`ThermalParams`
     :returns: the value of the thermal interaction for each time step
     """
 
@@ -331,9 +332,9 @@ def heat_flow_ensemble(
     :param ψ_0s: array of the first HOPS hierarchy states ``(N, time,
         hierarchy-width * dim-state)``
     :param params: a parameter object for the system, see
-        :py:`SystemParams`
+        :any:`SystemParams`
     :param therm_args: the realization parameters and the parameter
-        object, see :py:`ThermalParams`
+        object, see :any:`ThermalParams`
 
     :returns: the value of the flow for each time step
     """
@@ -380,9 +381,9 @@ def interaction_energy_ensemble(
     :param ψ_0s: array of the first HOPS hierarchy states ``(N, time,
         hierarchy-width * dim-state)``
     :param params: a parameter object for the system, see
-        :py:`SystemParams`
+        :any:`SystemParams`
     :param therm_args: the realization parameters and the parameter
-        object, see :py:`ThermalParams`
+        object, see :any:`ThermalParams`
 
     :returns: the value of the flow for each time step
     """
