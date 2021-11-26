@@ -7,7 +7,7 @@
 import numpy as np
 import itertools
 from dataclasses import dataclass, field, InitVar
-from typing import Callable, Union
+from typing import Callable, Union, Optional
 import numpy.typing as npt
 import lmfit
 from . import util
@@ -24,62 +24,72 @@ class BCF:
     You can either give the BCFs as parameter or the coefficients.
     If you give the BCFs, the fit will be performed automatically.
 
-    :param t_max: the maximum simulation time
-    :param function: the BCF as python function, will be set to the
-        exponential expansion if the BCF coefficients are given.
+    Calling this object will call the wrapped BCF function.
 
-    :param num_terms: the number of terms of the expansion of the
-        BCF
-    :param precision: the precision in the sampling for the fit,
-        ``t_max/precision`` points will be used
-    :param exponents: the exponential factors in the BCF expansion
-    :param factors: the pre-factors in the BCF expansion
-
-    :attribute approx:
+    :param resolution: the precision in the sampling for the fit, ``t_max/precision``
+        points will be used
+    :param num_terms: the number of terms of the expansion of the BCF expansion
     """
 
-    #: the maximum simulation time
-    t_max: float
-    function: Union[Callable[[npt.ArrayLike], np.ndarray], None] = None
-    num_terms: Union[int, None] = None
-    resolution: Union[float, None] = None
-    factors: Union[np.ndarray, None] = None
-    exponents: Union[np.ndarray, None] = None
+    def __init__(
+        self,
+        t_max: float,
+        function: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+        num_terms: Optional[int] = None,
+        resolution: Optional[float] = None,
+        factors: Optional[np.ndarray] = None,
+        exponents: Optional[np.ndarray] = None,
+    ):
 
-    #: the BCF as exponential expansion
-    approx: Callable[[npt.ArrayLike], np.ndarray] = field(init=False)
+        #: the maximum simulation time
+        self.t_max = t_max
 
-    def __post_init__(self):
-        if self.function is not None:
-            if self.num_terms is None or self.resolution is None:
+        if function is not None:
+            #: the BCF as python function, will be set to the exponential
+            #: expansion if the BCF coefficients are given.
+            self.function = function
+
+            if num_terms is None or resolution is None:
                 raise ValueError(
                     "Either give the function, the number of terms and the resolution or the coefficients."
                 )
 
-            self.exponents, self.factors = util.fit_α(
+            _exponents, _factors = util.fit_α(
                 self.function,
-                self.num_terms,
+                num_terms,
                 self.t_max,
-                int(self.t_max / self.resolution),
+                int(self.t_max / resolution),
             )
+            #: the factors in the BCF expansion
+            self.factors = _factors
+
+            #: the exponents in the BCF expansion
+            self.exponents = _exponents
 
         else:
-            if self.factors is None or self.exponents is None:
+            if factors is None or exponents is None:
                 raise ValueError(
                     "Either give the function and number of terms or the coefficients."
                 )
+
+            assert factors is not None
+            assert exponents is not None
+            self.factors = factors
+            self.exponents = factors
 
             if self.factors.size != self.exponents.size:
                 raise ValueError(
                     "Factors and exponents have to have the same dimension."
                 )
 
-            self.num_terms = self.factors.size
-
-        self.approx = functools.partial(util.α_apprx, G=self.factors, W=self.exponents)
-
-        if self.function is None:
             self.function = self.approx
+
+    def approx(self, t: np.ndarray) -> np.ndarray:
+        """The BCF as exponential expansion."""
+        return util.α_apprx(t, self.factors, self.exponents)
+
+    def __call__(self, t: np.ndarray):
+        return self.function(t)
 
 
 @dataclass
