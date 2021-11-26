@@ -15,7 +15,6 @@ import functools
 from numpy.polynomial import Polynomial
 
 
-@dataclass
 class BCF:
     r"""A parameter object to hold information about a BCF.
 
@@ -219,7 +218,8 @@ class Propagator:
     You can get inidividual matrix elements as functions of time
     through indexing this object.
 
-    Calling it with a time argument returns the whole matrix.
+    Calling it with a time argument returns the whole matrix as
+    array of shape ``(time, 2, 2)``.
 
     :param sys: a parameter object with the system parameters
     """
@@ -273,161 +273,164 @@ class Propagator:
         )
 
 
-@dataclass
-class FlowParams:
+class Flow:
     r"""
-    A parameter object to hold the global parameters for the flow algorithm.
+    A collection of methods to calculate the time derivative
+    of the bath energy expectation value :math:`\frac{d}{dt}\langle H_B\rangle`
+    which can be retrieved as a function of time by calling this object.
 
     :param system: the system parameters, see :any:`SystemParams`
     :param α_0_dot: the zero temperature BCF time derivative
     :param n: the excitation number of the initial state of the system :math:`|n\rangle`
 
-    :attr L: the exponential factors in the BCF derivative
-             expansion :math:`\dot{\alpha}_0=\sum_k P_k e^{-L_k \cdot t}`
-
-    :attr P: the pre-factors in the BCF derivative expansion
-    :attr q_s_0: the expectation value :math:`\langle q(0)^2\rangle`
-    :attr p_s_0: the expectation value :math:`\langle q(0)^2\rangle`
-    :attr qp_0: the expectation value :math:`\langle q(0)p(0)\rangle`
-    :attr prop: the propagator matrix :math:`G(t)`, see :any:`Propagator`
-    :attr B_coef: the pre-factors of the exponential sum of :math:`B=G_{12}=\sum_k B_k e^{-C_k \cdot t}`
-
-                    - note the minus sign
-    :attr C: the exponents of the exponential sum of ``B``
-    :attr A_coef: the pre-factors of the exponential sum of :math:`A=G_{11}=\sum_k A_k e^{-C_k \cdot t}`
     """
 
-    system: InitVar[SystemParams]
-    α_0_dot: BCF
-    n: int
+    def __init__(self, system: SystemParams, α_0_dot: BCF, n: int):
+        #: the exponential factors in the BCF derivative
+        #: expansion :math:`\dot{\alpha}_0=\sum_k P_k e^{-L_k \cdot t}`
+        self.L = α_0_dot.exponents
 
-    # BCF derivative coefficients
-    L: np.ndarray = field(init=False)
-    P: np.ndarray = field(init=False)
+        #: the pre-factors in the BCF derivative expansion
+        self.P = α_0_dot.factors * (system.η ** 2)
 
-    # initial state
-    q_s_0: float = field(init=False)
-    p_s_0: float = field(init=False)
-    qp_0: complex = field(init=False)
+        self.C, self.B = calculate_coefficients(system)
 
-    # propagator
-    prop: Propagator = field(init=False)
-    B_coef: np.ndarray = field(init=False)
-    C: np.ndarray = field(init=False)
-    A_coef: np.ndarray = field(init=False)
+        #: the pre-factors of the exponential sum of :math:`A=G_{11}=\sum_k A_k e^{-C_k \cdot t}`
+        self.A = self.B * self.C
 
-    def __post_init__(self, system):
-        self.L = self.α_0_dot.exponents
-        self.P = self.α_0_dot.factors * (system.η ** 2)
-
-        self.q_s_0 = 1 + 2 * self.n
-        self.p_s_0 = 1 + 2 * self.n
-        self.qp_0 = 1j
-
-        self.C, self.B_coef = calculate_coefficients(system)
-        self.A_coef = self.B_coef * self.C
-
-        self.B_coef = system.Ω * self.B_coef
+        #: the exponents of the exponential sum of :math:`B=G_{12}=\sum_k B_k e^{-C_k \cdot t}`
+        #:
+        #:   - note the minus sign
         self.C = -self.C  # mind the extra -
 
+        #: the pre-factors of the exponential sum of ``B``
+        self.B = system.Ω * self.B
+
+        #: the exponential factors in the BCF
+        #: expansion :math:`\alpha=\sum_k G_k e^{-W_k \cdot t}`
+        self.W = system.W
+
+        #: the pre-factors factors in the BCF expansion
+        self.G = system.G
+
+        #: the expectation value :math:`\langle q(0)^2\rangle`
+        self.q_s_0 = 1 + 2 * n
+
+        #: the expectation value :math:`\langle q(0)^2\rangle`
+        self.p_s_0 = 1 + 2 * n
+
+        #: the expectation value :math:`\langle q(0)p(0)\rangle`
+        self.qp_0 = 1j
+
+        #: the propagator matrix :math:`G(t)`, see :any:`Propagator`
         self.prop = Propagator(system)
 
+        #: the coefficient matrix :math:`\Gamma^1`
+        self.Γ1 = (self.B[:, None] * self.P[None, :]) / (
+            self.L[None, :] - self.C[:, None]
+        )
 
-def get_flow(
-    sys: SystemParams, flow: FlowParams
-) -> Callable[[npt.ArrayLike], np.ndarray]:
-    r"""Get the flow :math:`\frac{d}{dt}\langle H_B\rangle` as a function of time."""
+        #: the coefficient matrix :math:`\Gamma^2`
+        self.Γ2 = (self.B[:, None] * self.G[None, :]) / (
+            self.C[:, None] - self.W[None, :]
+        )
 
-    # TODO: Think about the too bloated ``FlowParams`` class and this ugly function
-    A = flow.prop[0, 0]
-    B = flow.prop[0, 1]
-    Bk = flow.B_coef  #
-    Ak = flow.A_coef  #
-    Pk = flow.P  #
-    Lk = flow.L  #
-    Ck = flow.C  #
-    Wk = sys.W  #
-    Gk = sys.G  #
-    Γ1 = (Bk[:, None] * Pk[None, :]) / (Lk[None, :] - Ck[:, None])
-    Γ2 = (Bk[:, None] * Gk[None, :]) / (Ck[:, None] - Wk[None, :])
-    Γ3 = (Bk[:, None] * Gk.conj()[None, :]) / (Ck[:, None] + Wk.conj()[None, :])
-    ΓA = (Ak[:, None] * Pk[None, :]) / (Lk[None, :] - Ck[:, None])
+        #: the coefficient matrix :math:`\Gamma^3`
+        self.Γ3 = (self.B[:, None] * self.G.conj()[None, :]) / (
+            self.C[:, None] + self.W.conj()[None, :]
+        )
 
-    def A_conv(t):
-        t = np.asarray(t)
+        #: the coefficient matrix :math:`\Gamma^A`
+        self.ΓA = (self.A[:, None] * self.P[None, :]) / (
+            self.L[None, :] - self.C[:, None]
+        )
+
+    def A_conv(self, t: npt.ArrayLike):
+        r"""The integral :math:`\int_0^t A(s)\dot{\alpha}_0(t-s)ds`."""
         result = np.zeros_like(t, dtype="complex128")
 
-        # print(np.sort(Ck.imag.flatten()))
-
-        for (n, m) in itertools.product(range(len(Ak)), range(len(Pk))):
-            result += ΓA[n, m] * (np.exp(-Ck[n] * t) - np.exp(-Lk[m] * t))
+        for (n, m) in itertools.product(range(len(self.A)), range(len(self.P))):
+            result += self.ΓA[n, m] * (np.exp(-self.C[n] * t) - np.exp(-self.L[m] * t))
 
         return result
 
-    def B_conv(t):
-        t = np.asarray(t)
+    def B_conv(self, t: npt.ArrayLike):
+        r"""The integral :math:`\int_0^t B(s)\dot{\alpha}_0(t-s)ds`."""
         result = np.zeros_like(t, dtype="complex128")
-        for (n, m) in itertools.product(range(len(Bk)), range(len(Pk))):
-            result += Γ1[n, m] * (np.exp(-Ck[n] * t) - np.exp(-Lk[m] * t))
+        for (n, m) in itertools.product(range(len(self.B)), range(len(self.P))):
+            result += self.Γ1[n, m] * (np.exp(-self.C[n] * t) - np.exp(-self.L[m] * t))
 
         return result
 
-    def flow_conv_free(t):
-        a, b = A(t), B(t)
-        ac, bc = A_conv(t), B_conv(t)
-        # print(ac, bc)
+    def flow_nontherm(self, t: npt.ArrayLike):
+        r"""The part of the flow that **does not** involve :math:`\alpha`."""
+        a, b = self.prop[0, 0](t), self.prop[0, 1](t)
+        ac, bc = self.A_conv(t), self.B_conv(t)
+
         return (
             -1
             / 2
             * (
-                flow.q_s_0 * a * ac
-                + flow.p_s_0 * b * bc
-                + flow.qp_0 * a * bc
-                + flow.qp_0.conjugate() * b * ac
+                self.q_s_0 * a * ac
+                + self.p_s_0 * b * bc
+                + self.qp_0 * a * bc
+                + self.qp_0.conjugate() * b * ac
             ).imag
         )
 
-    def conv_part(t):
+    def flow_therm(self, t: npt.ArrayLike):
+        r"""The part of the flow that **does** involve :math:`\alpha`."""
         t = np.asarray(t)
         result = np.zeros_like(t, dtype="float")
+
         for (m, k, n, l) in itertools.product(
-            range(len(Bk)), range(len(Pk)), range(len(Bk)), range(len(Gk))
+            range(len(self.B)),
+            range(len(self.P)),
+            range(len(self.B)),
+            range(len(self.G)),
         ):
             g_1_2 = (
-                Γ1[m, k]
-                * Γ2[n, l]
+                self.Γ1[m, k]
+                * self.Γ2[n, l]
                 * (
-                    (1 - np.exp(-(Ck[m] + Wk[l]) * t)) / (Ck[m] + Wk[l])
-                    + (np.exp(-(Ck[m] + Ck[n]) * t) - 1) / (Ck[m] + Ck[n])
-                    + (np.exp(-(Lk[k] + Wk[l]) * t) - 1) / (Lk[k] + Wk[l])
-                    + (1 - np.exp(-(Lk[k] + Ck[n]) * t)) / (Lk[k] + Ck[n])
+                    (1 - np.exp(-(self.C[m] + self.W[l]) * t)) / (self.C[m] + self.W[l])
+                    + (np.exp(-(self.C[m] + self.C[n]) * t) - 1)
+                    / (self.C[m] + self.C[n])
+                    + (np.exp(-(self.L[k] + self.W[l]) * t) - 1)
+                    / (self.L[k] + self.W[l])
+                    + (1 - np.exp(-(self.L[k] + self.C[n]) * t))
+                    / (self.L[k] + self.C[n])
                 )
-            )
+            ).imag
 
             g_1_3 = (
-                Γ1[m, k]
-                * Γ3[n, l]
+                self.Γ1[m, k]
+                * self.Γ3[n, l]
                 * (
-                    (1 - np.exp(-(Ck[m] + Ck[n]) * t)) / (Ck[m] + Ck[n])
-                    - (1 - np.exp(-(Lk[k] + Ck[n]) * t)) / (Lk[k] + Ck[n])
+                    (1 - np.exp(-(self.C[m] + self.C[n]) * t)) / (self.C[m] + self.C[n])
+                    - (1 - np.exp(-(self.L[k] + self.C[n]) * t))
+                    / (self.L[k] + self.C[n])
                     - (
-                        np.exp(-(Ck[n] + Wk[l].conj() * t))
-                        - np.exp(-(Ck[m] + Ck[n]) * t)
+                        np.exp(-(self.C[n] + self.W[l].conj() * t))
+                        - np.exp(-(self.C[m] + self.C[n]) * t)
                     )
-                    / (Ck[m] - Wk[l].conj())
+                    / (self.C[m] - self.W[l].conj())
                     + (
-                        np.exp(-(Ck[n] + Wk[l].conj() * t))
-                        - np.exp(-(Lk[k] + Ck[n]) * t)
+                        np.exp(-(self.C[n] + self.W[l].conj() * t))
+                        - np.exp(-(self.L[k] + self.C[n]) * t)
                     )
-                    / (Lk[k] - Wk[l].conj())
+                    / (self.L[k] - self.W[l].conj())
                 )
-            )
+            ).imag
 
-            result += -1 / 2 * (g_1_2.imag + g_1_3.imag)
+            result += -1 / 2 * (g_1_2 + g_1_3)
 
         return result
 
-    def final_flow(t: npt.ArrayLike) -> np.ndarray:
-        return flow_conv_free(t) + conv_part(t)
+    def __call__(self, t: npt.ArrayLike) -> np.ndarray:
+        r"""
+        The flow. Time derivative of the bath energy
+        expectation value :math:`\frac{d}{dt}\langle H_B\rangle`.
+        """
 
-    return final_flow
+        return self.flow_nontherm(t) + self.flow_therm(t)
