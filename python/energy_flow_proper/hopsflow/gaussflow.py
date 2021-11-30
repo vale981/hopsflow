@@ -121,7 +121,7 @@ class SystemParams:
         self.t_max = self.α.t_max
 
         self.W = self.α.exponents
-        self.G = self.α.factors * (self.η ** 2)
+        self.G = self.α.factors * self.η
 
 
 def construct_polynomials(sys: SystemParams) -> tuple[Polynomial, Polynomial]:
@@ -291,7 +291,7 @@ class Flow:
         self.L = α_0_dot.exponents
 
         #: the pre-factors in the BCF derivative expansion
-        self.P = α_0_dot.factors * (system.η ** 2)
+        self.P = α_0_dot.factors * system.η
 
         self.C, self.B = calculate_coefficients(system)
 
