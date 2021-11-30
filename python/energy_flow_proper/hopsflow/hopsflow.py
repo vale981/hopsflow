@@ -325,6 +325,7 @@ def heat_flow_ensemble(
     params: SystemParams,
     N: Optional[int],
     therm_args: Optional[Tuple[Iterator[np.ndarray], ThermalParams]] = None,
+    **kwargs,
 ) -> np.ndarray:
     """Calculates the heat flow for an ensemble of trajectories.
 
@@ -336,6 +337,8 @@ def heat_flow_ensemble(
     :param therm_args: the realization parameters and the parameter
         object, see :any:`ThermalParams`
 
+    The rest of the ``kwargs`` is passed on to :any:`util.ensemble_mean`.
+
     :returns: the value of the flow for each time step
     """
 
@@ -344,6 +347,7 @@ def heat_flow_ensemble(
         _heat_flow_ensemble_body,
         N,
         (params, therm_args[1] if therm_args else None),
+        **kwargs,
     )
 
 
