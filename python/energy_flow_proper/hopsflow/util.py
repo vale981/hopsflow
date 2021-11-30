@@ -165,7 +165,7 @@ class WelfordAggregator:
         delta = new_value - self.mean
         self.mean += delta / self.n
         delta2 = new_value - self.mean
-        self._m_2 += delta * delta2
+        self._m_2 += np.abs(delta) * np.abs(delta2)
 
     @property
     def sample_variance(self) -> np.ndarray:
