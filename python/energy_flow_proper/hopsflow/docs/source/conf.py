@@ -31,7 +31,12 @@ release = "0.0.0"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.intersphinx", "sphinx.ext.viewcode"]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.viewcode",
+    "sphinx_autodoc_typehints",
+]
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3.9", None),
@@ -44,6 +49,10 @@ autodoc_default_options = {
     "members": True,
     "undoc-members": True,
 }
+
+set_type_checking_flag = True
+always_document_param_types = True
+typehints_document_rtype = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
