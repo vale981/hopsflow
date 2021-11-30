@@ -50,7 +50,11 @@ def operator_expectation(ρ: np.ndarray, op: np.ndarray) -> np.ndarray:
 
 
 def operator_expectation_ensemble(
-    ψs: Iterator[np.ndarray], op: np.ndarray, N: Optional[int], normalize: bool = False
+    ψs: Iterator[np.ndarray],
+    op: np.ndarray,
+    N: Optional[int],
+    normalize: bool = False,
+    **kwargs,
 ) -> np.ndarray:
     """Calculates the expecation value of ``op`` as a time series.
 
@@ -59,10 +63,14 @@ def operator_expectation_ensemble(
     :param op: The operator.
     :param N: Number of samples to take.
 
+    All the other kwargs are passed on to :any:`ensemble_mean`.
+
     :returns: the expectation value
     """
 
-    return ensemble_mean(ψs, sandwhich_operator, N, const_args=(op, normalize))
+    return ensemble_mean(
+        ψs, sandwhich_operator, N, const_args=(op, normalize), **kwargs
+    )
 
 
 def mulitply_hierarchy(left: np.ndarray, right: np.ndarray) -> np.ndarray:
@@ -141,6 +149,9 @@ def _ensemble_mean_init(func: Callable, args: tuple, kwargs: dict):
 
 
 # TODO: Use paramspec
+from tqdm import tqdm
+
+
 def ensemble_mean(
     arg_iter: Iterator[Any],
     function: Callable[..., np.ndarray],
@@ -148,9 +159,19 @@ def ensemble_mean(
     const_args: tuple = tuple(),
     const_kwargs: dict = dict(),
     n_proc: Optional[int] = None,
+    every: Optional[int] = None,
+    calculate_variance: bool = False,
 ):
 
-    result = function(next(arg_iter), *const_args)
+    first = function(next(arg_iter), *const_args)
+    result = np.zeros(
+        tuple([1] if every is None else [int(N / every) + 1]) + first.shape,
+        dtype=first.dtype,
+    )
+    result[-1] = first
+
+    if calculate_variance:
+        vars = np.zeros_like(result)
 
     if not n_proc:
         n_proc = multiprocessing.cpu_count()
@@ -163,15 +184,47 @@ def ensemble_mean(
         result_iter = pool.imap_unordered(
             _ensemble_mean_call,
             itertools.islice(arg_iter, None, N - 1 if N else None),
-            1,
+            10,
         )
 
         n = 1
-        for res in result_iter:
-            result += res
+        ns = []
+        for res in tqdm(result_iter, total=(N - 1)):
+            result[-1] += res
+            if calculate_variance:
+                vars[-1] += res ** 2
+
             n += 1
 
-    return result / n
+            if every is not None and (n % every) == 0:
+                ns.append(n)
+                index = int(n / every) - 1
+                result[index] = result[-1].copy() / n
+
+                if calculate_variance:
+                    vars[index] = np.sqrt(
+                        ((vars[-1].copy()) / n - result[index] ** 2) / (n - 1)
+                    )
+
+    ns.append(n)
+
+    result[-1] /= n
+    if calculate_variance:
+        vars[-1] = np.sqrt((vars[-1] / n - result[-1] ** 2) / (n - 1))
+
+    if not every:
+        result = result[-1]
+        if calculate_variance:
+            vars = vars[-1]
+
+    retval = [result]
+    if calculate_variance:
+        retval = retval + [vars]
+
+    if every:
+        retval = retval + [ns]
+
+    return tuple(retval)
 
 
 def fit_α(
