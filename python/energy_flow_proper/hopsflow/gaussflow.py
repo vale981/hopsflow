@@ -99,7 +99,7 @@ class SystemParams:
     :param Ω: the system hamiltonian energy scale, :math:`H_s =
               \Omega (p^2 + q^2)`
     :param η: the coupling strength (in essence a prefactor to the BCF)
-    :param α: the BCF
+    :param α_0: the zero temperature BCF
 
 
     :attr t_max: the maximum simulation time, will be copied from :attr:`α`
@@ -109,7 +109,7 @@ class SystemParams:
 
     Ω: float
     η: float
-    α: BCF
+    α_0: BCF
 
     t_max: float = field(init=False)
 
@@ -118,10 +118,10 @@ class SystemParams:
     G: np.ndarray = field(init=False)
 
     def __post_init__(self):
-        self.t_max = self.α.t_max
+        self.t_max = self.α_0.t_max
 
-        self.W = self.α.exponents
-        self.G = self.α.factors * self.η
+        self.W = self.α_0.exponents
+        self.G = self.α_0.factors * self.η
 
 
 def construct_polynomials(sys: SystemParams) -> tuple[Polynomial, Polynomial]:
@@ -274,12 +274,13 @@ class Flow:
     which can be retrieved as a function of time by calling this object.
 
     :param system: the system parameters, see :any:`SystemParams`
+    :param α: the (finite temperature) BCF
     :param α_0_dot: the zero temperature BCF time derivative
     :param n: the excitation number of the initial state of the system :math:`|n\rangle`
 
     """
 
-    def __init__(self, system: SystemParams, α_0_dot: BCF, n: int):
+    def __init__(self, system: SystemParams, α: BCF, α_0_dot: BCF, n: int):
         #: the exponential factors in the BCF derivative
         #: expansion :math:`\dot{\alpha}_0=\sum_k P_k e^{-L_k \cdot t}`
         self.L = α_0_dot.exponents
@@ -302,10 +303,10 @@ class Flow:
 
         #: the exponential factors in the BCF
         #: expansion :math:`\alpha=\sum_k G_k e^{-W_k \cdot t}`
-        self.W = system.W
+        self.W = α.exponents
 
         #: the pre-factors factors in the BCF expansion
-        self.G = system.G
+        self.G = α.factors
 
         #: the expectation value :math:`\langle q(0)^2\rangle`
         self.q_s_0 = 1 + 2 * n
