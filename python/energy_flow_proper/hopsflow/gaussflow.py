@@ -144,9 +144,6 @@ def construct_polynomials(sys: SystemParams) -> tuple[Polynomial, Polynomial]:
     γ, δ = sys.W.real, sys.W.imag
     s, c = np.sin(φ), np.cos(φ)
 
-    # the roots of -G ((z + γ)s + δc)
-    roots_f = -(γ + δ * c / s)
-
     # the roots of the denominator of the laplace transform of α
     roots_z = -sys.W
 
@@ -159,21 +156,18 @@ def construct_polynomials(sys: SystemParams) -> tuple[Polynomial, Polynomial]:
     q = [
         -G_c
         * sys.Ω
-        * s_c
+        * Polynomial((δ_c * c_c + γ_c * s_c, s_c))
         * util.poly_real(
             Polynomial.fromroots(
                 np.concatenate(
                     (
-                        [root_f],
                         util.except_element(roots_z, i),
                         util.except_element(roots_z, i).conj(),
                     )
                 )
             )
         )
-        for root_f, G_c, γ_c, δ_c, s_c, c_c, i in zip(
-            roots_f, G_abs, γ, δ, s, c, range(len(c))
-        )
+        for G_c, γ_c, δ_c, s_c, c_c, i in zip(G_abs, γ, δ, s, c, range(len(c)))
     ]
 
     p = p_1 + sum(q)

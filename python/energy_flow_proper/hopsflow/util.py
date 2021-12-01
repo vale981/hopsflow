@@ -1,4 +1,5 @@
 """Utilities for the energy flow calculation."""
+
 import itertools
 import functools
 import multiprocessing
@@ -192,6 +193,10 @@ def ensemble_mean(
 
     results = []
     aggregate = WelfordAggregator(function(next(arg_iter), *const_args))
+
+    if N == 1:
+        results = [(1, aggregate.mean, np.zeros_like(aggregate.mean))]
+        return results if every else results[0]
 
     if not n_proc:
         n_proc = multiprocessing.cpu_count()
