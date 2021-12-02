@@ -266,6 +266,9 @@ class Propagator:
             .swapaxes(1, 2)
         )
 
+    def inv(self, t) -> np.ndarray:
+        return np.linalg.inv(self.__call__(t))
+
 
 class Flow:
     r"""
@@ -306,7 +309,7 @@ class Flow:
         self.W = α.exponents
 
         #: the pre-factors factors in the BCF expansion
-        self.G = α.factors
+        self.G = α.factors * system.η
 
         #: the expectation value :math:`\langle q(0)^2\rangle`
         self.q_s_0 = 1 + 2 * n
