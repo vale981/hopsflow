@@ -156,15 +156,19 @@ def construct_polynomials(sys: SystemParams) -> tuple[Polynomial, Polynomial]:
         -G_c
         * sys.Ω
         * Polynomial((δ_c * c_c + γ_c * s_c, s_c))
-        * util.poly_real(
-            Polynomial.fromroots(
-                np.concatenate(
-                    (
-                        util.except_element(roots_z, i),
-                        util.except_element(roots_z, i).conj(),
+        * (
+            util.poly_real(
+                Polynomial.fromroots(
+                    np.concatenate(
+                        (
+                            util.except_element(roots_z, i),
+                            util.except_element(roots_z, i).conj(),
+                        )
                     )
                 )
             )
+            if len(roots_z) > 1
+            else 1  # corner case
         )
         for G_c, γ_c, δ_c, s_c, c_c, i in zip(G_abs, γ, δ, s, c, range(len(c)))
     ]
