@@ -258,7 +258,7 @@ def fit_α(
 
     ts = np.asarray(support_points)
     if ts.size < 2:
-        ts = np.linspace(0, t_max, support_points)
+        ts = np.linspace(-0.1, t_max, support_points)
 
     out = minimize(residual, fit_params, args=(ts, α(ts)))
 
