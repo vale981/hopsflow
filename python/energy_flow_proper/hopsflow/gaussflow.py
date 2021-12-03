@@ -9,7 +9,6 @@ import itertools
 from dataclasses import dataclass, field, InitVar
 from typing import Callable, Union, Optional
 import numpy.typing as npt
-import lmfit
 from . import util
 import functools
 from numpy.polynomial import Polynomial
@@ -409,12 +408,12 @@ class Flow:
                     - (1 - np.exp(-(self.L[k] + self.C[n]) * t))
                     / (self.L[k] + self.C[n])
                     - (
-                        np.exp(-(self.C[n] + self.W[l].conj() * t))
+                        np.exp(-(self.C[n] + self.W[l].conj()) * t)
                         - np.exp(-(self.C[m] + self.C[n]) * t)
                     )
                     / (self.C[m] - self.W[l].conj())
                     + (
-                        np.exp(-(self.C[n] + self.W[l].conj() * t))
+                        np.exp(-(self.C[n] + self.W[l].conj()) * t)
                         - np.exp(-(self.L[k] + self.C[n]) * t)
                     )
                     / (self.L[k] - self.W[l].conj())
