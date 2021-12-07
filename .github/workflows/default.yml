@@ -8,7 +8,6 @@ on:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
-    container: sphinxdoc/sphinx:latest
 
     steps:
     - uses: actions/checkout@v2
