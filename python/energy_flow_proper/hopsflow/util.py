@@ -1,14 +1,17 @@
 """Utilities for the energy flow calculation."""
 
 import itertools
-import functools
 import multiprocessing
 import numpy as np
 import scipy
+import scipy.integrate
 from typing import Iterator, Optional, Any, Callable, Union
 from lmfit import minimize, Parameters
 from numpy.polynomial import Polynomial
 from tqdm import tqdm
+
+Aggregate = tuple[int, np.ndarray, np.ndarray]
+EnsembleReturn = Union[Aggregate, list[Aggregate]]
 
 
 def apply_operator(ψ: np.ndarray, op: np.ndarray) -> np.ndarray:
@@ -59,7 +62,7 @@ def operator_expectation_ensemble(
     N: Optional[int],
     normalize: bool = False,
     **kwargs,
-) -> np.ndarray:
+) -> EnsembleReturn:
     """Calculates the expecation value of ``op`` as a time series.
 
     :param ψs: A collection of stochastic trajectories.  Each
@@ -187,7 +190,7 @@ def ensemble_mean(
     const_kwargs: dict = dict(),
     n_proc: Optional[int] = None,
     every: Optional[int] = None,
-):
+) -> EnsembleReturn:
 
     results = []
     aggregate = WelfordAggregator(function(next(arg_iter), *const_args))
