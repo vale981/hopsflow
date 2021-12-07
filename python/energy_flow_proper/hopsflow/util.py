@@ -212,7 +212,7 @@ def ensemble_mean(
             10,
         )
 
-        for res in tqdm(result_iter, total=(N - 1)):
+        for res in tqdm(result_iter, total=(N - 1) if N else None):
             aggregate.update(res)
 
             if every is not None and (aggregate.n % every) == 0 or aggregate.n == N:
