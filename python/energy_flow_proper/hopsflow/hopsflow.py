@@ -11,7 +11,7 @@ import scipy.misc
 from . import util
 from typing import Optional, Tuple, Iterator, Union
 from stocproc import StocProc
-
+import itertools
 
 ###############################################################################
 #                          Interface/Parameter Object#
@@ -150,7 +150,7 @@ class ThermalParams:
 
         self.ξ = ξ
         self.τ = τ
-        self.dx = 1e-3
+        self.dx = dx
         self.order = order
         self.num_deriv = num_deriv
 
@@ -161,16 +161,21 @@ class ThermalRunParams:
 
     :param therm_params: information abouth the thermal stochastic
         process
-    :param ξ_coeff: the coefficients of the realization of the thermal
-        stochastic process
+
+    :param seed: the seed used to generate the random numbers for the
+        process realization
 
     :attr ξ_dot: the process derivative evaluated at τ :attr
-        ξ_values: the process evaluated at τ
+
+    :attr ξ_values: the process evaluated at τ
+
+    :attr ξ_coeff: the coefficients of the realization of the thermal
+        stochastic process
     """
 
     __slots__ = ["ξ_coeff", "ξ_dot", "ξ_values"]
 
-    def __init__(self, therm_params: ThermalParams, ξ_coeff: np.ndarray):
+    def __init__(self, therm_params: ThermalParams, seed: int):
         """Class initializer.  Computes the most useful attributes
         ahead of time.
 
@@ -178,9 +183,10 @@ class ThermalRunParams:
         being calculated.
         """
 
-        self.ξ_coeff = ξ_coeff
-
+        np.random.seed(seed)
+        self.ξ_coeff = util.uni_to_gauss(np.random.rand(therm_params.ξ.get_num_y() * 2))  # type: ignore
         therm_params.ξ.new_process(self.ξ_coeff)
+
         self.ξ_values = therm_params.ξ(therm_params.τ)
         self.ξ_dot: np.ndarray = (
             scipy.misc.derivative(
@@ -238,6 +244,7 @@ def flow_trajectory_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarr
         * (
             run.normalize_maybe(np.sum(run.ψ_coup.conj() * run.ψ_0, axis=1))
             * therm_run.ξ_dot
+            * np.sqrt(0.2)
         ).real
     )
     return flow
@@ -299,21 +306,22 @@ def interaction_energy_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.nd
 
 
 def _heat_flow_ensemble_body(
-    ψs: Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
+    ψs: tuple[np.ndarray, np.ndarray, int],
     params: SystemParams,
-    thermal: ThermalParams,
+    thermal: Optional[ThermalParams],
+    only_therm: bool,
 ):
-    ψ_0, ψ_1 = ψs[0:2]
-
-    with_therm = len(ψs) == 3
-    if with_therm:
-        ys = ψs[-1]
+    ψ_0, ψ_1, seed = ψs
 
     run = HOPSRun(ψ_0, ψ_1, params)
-    flow = flow_trajectory_coupling(run, params)
+    flow = (
+        flow_trajectory_coupling(run, params)
+        if not only_therm
+        else np.zeros(ψ_0.shape[0])
+    )
 
-    if with_therm:
-        therm_run = ThermalRunParams(thermal, ys)
+    if thermal is not None:
+        therm_run = ThermalRunParams(thermal, seed)
         flow += flow_trajectory_therm(run, therm_run)
 
     return flow
@@ -325,8 +333,9 @@ def heat_flow_ensemble(
     params: SystemParams,
     N: Optional[int],
     therm_args: Optional[Tuple[Iterator[np.ndarray], ThermalParams]] = None,
+    only_therm: bool = False,
     **kwargs,
-) -> np.ndarray:
+) -> util.EnsembleReturn:
     """Calculates the heat flow for an ensemble of trajectories.
 
     :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``
@@ -336,36 +345,41 @@ def heat_flow_ensemble(
         :any:`SystemParams`
     :param therm_args: the realization parameters and the parameter
         object, see :any:`ThermalParams`
+    :param only_therm: whether to only calculate the thermal part of the flow
 
     The rest of the ``kwargs`` is passed on to :any:`util.ensemble_mean`.
 
     :returns: the value of the flow for each time step
     """
+    if therm_args is None and only_therm:
+        raise ValueError("Can't calculate only thermal part if therm_args are None.")
 
     return util.ensemble_mean(
-        iter(zip(ψ_0s, ψ_1s, therm_args[0])) if therm_args else iter(zip(ψ_0s, ψ_1s)),
+        iter(zip(ψ_0s, ψ_1s, therm_args[0]))
+        if therm_args
+        else iter(zip(ψ_0s, ψ_1s, itertools.repeat(0))),
         _heat_flow_ensemble_body,
         N,
-        (params, therm_args[1] if therm_args else None),
+        (params, therm_args[1] if therm_args else None, only_therm),
         **kwargs,
     )
 
 
 def _interaction_energy_ensemble_body(
-    ψs: Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]],
+    ψs: Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, int]],
     params: SystemParams,
     thermal: ThermalParams,
-):
+) -> np.ndarray:
     ψ_0, ψ_1 = ψs[0:2]
 
-    with_therm = len(ψs) == 3
-    if with_therm:
+    ys = None
+    if len(ψs) == 3:
         ys = ψs[-1]
 
     run = HOPSRun(ψ_0, ψ_1, params)
     energy = interaction_energy_coupling(run, params)
 
-    if with_therm:
+    if isinstance(ys, int):
         therm_run = ThermalRunParams(thermal, ys)
         energy += interaction_energy_therm(run, therm_run)
 
@@ -377,8 +391,8 @@ def interaction_energy_ensemble(
     ψ_1s: Iterator[np.ndarray],
     params: SystemParams,
     N: Optional[int],
-    therm_args: Optional[Tuple[Iterator[np.ndarray], ThermalParams]] = None,
-) -> np.ndarray:
+    therm_args: Optional[Tuple[Iterator[int], ThermalParams]] = None,
+) -> util.EnsembleReturn:
     """Calculates the heat flow for an ensemble of trajectories.
 
     :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``
@@ -398,3 +412,35 @@ def interaction_energy_ensemble(
         N,
         (params, therm_args[1] if therm_args else None),
     )
+
+
+# def _shift_expectation_body(
+#     ψs: Tuple[np.ndarray, np.ndarray],
+#     params: SystemParams,
+#     thermal: ThermalParams,
+# ):
+#     ψ_0, ys = ψs[0:2]
+#     run = ThermalRunParams(thermal, ys)
+#     shift_expectation = (
+#         util.sandwhich_operator(ψ_0, params.L.conj().T, normalize=False)
+#         * run.ξ_values[:, ...]
+#     )
+
+#     return np.gradient(shift_expectation.real * 2, thermal.τ, axis=0)
+
+
+# def shift_energy_ensemble(
+#     ψ_0s: Iterator[np.ndarray],
+#     params: SystemParams,
+#     N: Optional[int],
+#     therm_args: Tuple[Iterator[np.ndarray], ThermalParams],
+#     **kwargs,
+# ) -> np.ndarray:
+
+#     return util.ensemble_mean(
+#         iter(zip(ψ_0s, therm_args[0])),
+#         _shift_expectation_body,
+#         N,
+#         const_args=(params, therm_args[1]),
+#         **kwargs,
+#     )

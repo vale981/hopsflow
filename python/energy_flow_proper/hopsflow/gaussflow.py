@@ -287,6 +287,12 @@ class Flow:
     """
 
     def __init__(self, system: SystemParams, α: BCF, α_0_dot: BCF, n: int):
+        #: the BCF
+        self.α = α
+
+        #: the zero temperature BCF
+        self.α_0 = system.α_0
+
         #: the exponential factors in the BCF derivative
         #: expansion :math:`\dot{\alpha}_0=\sum_k P_k e^{-L_k \cdot t}`
         self.L = α_0_dot.exponents
@@ -313,6 +319,13 @@ class Flow:
 
         #: the pre-factors factors in the BCF expansion
         self.G = α.factors * system.η
+
+        #: the exponential factors in the zero temperature BCF
+        #: expansion :math:`\alpha=\sum_k U_k e^{-Q_k \cdot t}`
+        self.Q = system.α_0.exponents
+
+        #: the pre-factors factors in the zero temperature BCF expansion
+        self.U = system.α_0.factors * system.η
 
         #: the expectation value :math:`\langle q(0)^2\rangle`
         self.q_s_0 = 1 + 2 * n
@@ -345,6 +358,9 @@ class Flow:
         self.ΓA = (self.A[:, None] * self.P[None, :]) / (
             self.L[None, :] - self.C[:, None]
         )
+
+        #: the system parameters
+        self.system = system
 
     def A_conv(self, t: npt.ArrayLike):
         r"""The integral :math:`\int_0^t A(s)\dot{\alpha}_0(t-s)ds`."""
@@ -379,7 +395,7 @@ class Flow:
             ).imag
         )
 
-    def flow_therm(self, t: npt.ArrayLike):
+    def flow_therm_zero(self, t: npt.ArrayLike):
         r"""The part of the flow that **does** involve :math:`\alpha`."""
         t = np.asarray(t)
         result = np.zeros_like(t, dtype="float")
@@ -428,10 +444,48 @@ class Flow:
 
         return result
 
+    def flow_therm_nonzero(self, t: npt.ArrayLike):
+        r"""The part of the flow that **does** involve :math:`\alpha-\alpha_0`."""
+        t = np.asarray(t)
+        result = np.zeros_like(t, dtype="float")
+
+        for (n, m) in itertools.product(
+            range(len(self.A)),
+            range(len(self.G)),
+        ):
+            result += (
+                self.A[n]
+                * self.G[m]
+                / (self.C[n] + self.W[m])
+                * (1 - np.exp(-(self.C[n] + self.W[m]) * t))
+            ).real
+
+        for (n, m) in itertools.product(
+            range(len(self.A)),
+            range(len(self.U)),
+        ):
+            result -= (
+                self.A[n]
+                * self.U[m]
+                / (self.C[n] + self.Q[m])
+                * (1 - np.exp(-(self.C[n] + self.Q[m]) * t))
+            ).real
+
+        return (
+            1
+            / 2
+            * (
+                -self.system.Ω * result
+                + self.prop.el_12(t) * (self.α(t) - self.α_0(t)) * self.system.η
+            )
+        ).real
+
     def __call__(self, t: npt.ArrayLike) -> np.ndarray:
         r"""
         The flow. Time derivative of the bath energy
         expectation value :math:`\frac{d}{dt}\langle H_B\rangle`.
         """
 
-        return self.flow_nontherm(t) + self.flow_therm(t)
+        return (
+            self.flow_nontherm(t) + self.flow_therm_zero(t) + self.flow_therm_nonzero(t)
+        )
