@@ -274,7 +274,7 @@ def fit_α(
 
 def except_element(array: np.ndarray, index: int) -> np.ndarray:
     """Returns the ``array`` except the element with ``index``."""
-    mask = [i != index for i in range(array.size)]
+    mask = np.array([i != index for i in range(array.size)])
     return array[mask]
 
 
