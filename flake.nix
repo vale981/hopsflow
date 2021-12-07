@@ -6,9 +6,10 @@
     mach-nix.url = "github:DavHau/mach-nix";
     flake-utils.url = "github:numtide/flake-utils";
     fcSpline.url = "github:vale981/fcSpline";
+    stocproc.url = "github:vale981/stocproc";
   };
 
-   outputs = { self, nixpkgs, flake-utils, mach-nix, fcSpline }:
+   outputs = { self, nixpkgs, flake-utils, mach-nix, fcSpline, stocproc }:
      let
        python = "python39";
        pypiDataRev = "master";
@@ -27,37 +28,20 @@
          pkgs = nixpkgs.legacyPackages.${system};
          mach-nix-wrapper = import mach-nix { inherit pkgs python pypiDataRev pypiDataSha256; };
 
-         stocproc = (mach-nix-wrapper.buildPythonPackage
-           {src = builtins.fetchTarball {
-              url = "https://github.com/vale981/stocproc/archive/93589c45f7a4e1f43059139708d696ff5b066dd2.tar.gz";
-              sha256 = "005q29g9yxng6d0w3dx19xn5mwbmf3nxmh3233d5d5wvar5xjzvr";
-            };
-
-            requirements = ''
-                numpy
-                scipy
-                mpmath
-                cython
-            '';
-            pname="stocproc";
-            version = "1.0.1";
-           });
 
 
          requirements = builtins.readFile ./requirements.txt;
          fcSplinePkg = fcSpline.defaultPackage.${system};
+         stocprocPkg = stocproc.defaultPackage.${system};
 
          hopsflow  = mach-nix-wrapper.buildPythonPackage {
            src=./.;
            propagatedBuildInputs = [fcSplinePkg];
-           # packagesExtra = [hopsflow fcSplinePkg stocproc];
-           # _.stocproc.buildInputs.add = [fcSplinePkg];
          };
 
          pythonShell = mach-nix-wrapper.mkPythonShell {
            requirements = requirements;
-           packagesExtra = [hopsflow fcSplinePkg stocproc];
-           _.stocproc.buildInputs.add = [fcSplinePkg];
+           packagesExtra = [hopsflow stocprocPkg fcSplinePkg];
          };
 
          mergeEnvs = envs:
