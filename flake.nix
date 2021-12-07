@@ -70,7 +70,7 @@
            _.stocproc.buildInputs.add = [fcSpline];
          };
 
-         pythonPackage = mach-nix-wrapper.buildPythonPackage ./setup.py;
+         pythonPackage = mach-nix-wrapper.buildPythonPackage ./.;
 
          mergeEnvs = envs:
            pkgs.mkShell (builtins.foldl' (a: v: {
