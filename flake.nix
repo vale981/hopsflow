@@ -60,12 +60,7 @@
          requirements = builtins.readFile ./requirements.txt;
 
          pythonShell = mach-nix-wrapper.mkPythonShell {
-           requirements = requirements + ''
-           sphinx
-           pydata-sphinx-theme
-           sphinx-autodoc-typehints
-           data-science-types
-           '';
+           requirements = requirements;
            packagesExtra = [fcSpline stocproc];
            _.stocproc.buildInputs.add = [fcSpline];
          };
