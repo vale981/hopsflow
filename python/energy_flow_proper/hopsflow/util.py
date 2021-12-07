@@ -129,10 +129,6 @@ _ENSEMBLE_MEAN_ARGS: tuple = tuple()
 _ENSEMBLE_MEAN_KWARGS: dict = dict()
 
 
-def _ENSEMBLE_FUNC(_, *args, **kwargs):
-    return _
-
-
 def _ensemble_mean_call(arg) -> np.ndarray:
     global _ENSEMBLE_MEAN_ARGS
     global _ENSEMBLE_MEAN_KWARGS
