@@ -5,9 +5,10 @@
     nixpkgs.url = "nixpkgs/nixos-unstable";
     mach-nix.url = "github:DavHau/mach-nix";
     flake-utils.url = "github:numtide/flake-utils";
+    fcSpline.url = "github:vale981/fcSpline";
   };
 
-   outputs = { self, nixpkgs, flake-utils, mach-nix }:
+   outputs = { self, nixpkgs, flake-utils, mach-nix, fcSpline }:
      let
        python = "python39";
        pypiDataRev = "master";
@@ -21,56 +22,42 @@
            ];
          };
 
-     in flake-utils.lib.eachDefaultSystem (system:
+     in flake-utils.lib.eachSystem ["x86_64-linux"] (system:
        let
          pkgs = nixpkgs.legacyPackages.${system};
          mach-nix-wrapper = import mach-nix { inherit pkgs python pypiDataRev pypiDataSha256; };
 
-         fcSpline = (mach-nix-wrapper.buildPythonPackage
-           {src = builtins.fetchTarball {
-              url = "https://github.com/cimatosa/fcSpline/archive/4312b2c63d52711bff1bfe282d92f98a3e5073fb.tar.gz";
-              sha256 = "0l38q5avcbiyqlmmhznw9sg02y54fia6r7x2f9w6h3kqf2xh05yc";
-            };
-            pname="fcSpline";
-            version="0.1";
-            requirements=''
-             numpy
-             cython
-             setuptools
-             scipy
-           '';
-           });
-
          stocproc = (mach-nix-wrapper.buildPythonPackage
            {src = builtins.fetchTarball {
-              url = "https://github.com/vale981/stocproc/archive/c81eead1b86d8da0caa5ec013b5fb65e9d3c3b79.tar.gz";
-              sha256 = "00fvfmdcpkm9lp2zn8kzzn6msq7cypqhf87ihrf63ci5z4hg2jpl";
+              url = "https://github.com/vale981/stocproc/archive/93589c45f7a4e1f43059139708d696ff5b066dd2.tar.gz";
+              sha256 = "005q29g9yxng6d0w3dx19xn5mwbmf3nxmh3233d5d5wvar5xjzvr";
             };
 
-            _.stocproc.builInputs.add = [fcSpline];
+            requirements = ''
+                numpy
+                scipy
+                mpmath
+                cython
+            '';
             pname="stocproc";
             version = "1.0.1";
-            requirements = ''
-             numpy
-             cython
-             setuptools
-             mpmath
-             scipy
-             '';
            });
 
+
          requirements = builtins.readFile ./requirements.txt;
+         fcSplinePkg = fcSpline.defaultPackage.${system};
 
-
-         pythonPackage = mach-nix-wrapper.buildPythonPackage {
+         hopsflow  = mach-nix-wrapper.buildPythonPackage {
            src=./.;
-           _.hops.builInputs.add = [stocproc];
-           packagesExtra = [stocproc fcSpline];
+           propagatedBuildInputs = [fcSplinePkg];
+           # packagesExtra = [hopsflow fcSplinePkg stocproc];
+           # _.stocproc.buildInputs.add = [fcSplinePkg];
          };
 
          pythonShell = mach-nix-wrapper.mkPythonShell {
            requirements = requirements;
-           packagesExtra = [pythonPackage];
+           packagesExtra = [hopsflow fcSplinePkg stocproc];
+           _.stocproc.buildInputs.add = [fcSplinePkg];
          };
 
          mergeEnvs = envs:
@@ -81,6 +68,7 @@
 
        in {
          devShell = mergeEnvs [ (devShell pkgs) pythonShell ];
-         defaultPackage = pythonPackage;
+         defaultPackage = hopsflow;
+         packages.hopsflow = hopsflow;
        });
 }

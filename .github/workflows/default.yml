@@ -17,11 +17,13 @@ jobs:
       with:
         path: ~/.nix
         key: always
-    - uses: jD91mZM2/nix-github@master
-    - run: pip install -r requirements.txt
-    - run: python setup.py install
+    - uses: cachix/install-nix-action@v15
+      with:
+        extra_nix_config: |
+          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+    - run: nix develop -c "cd docs && make html && cd build/html && touch .nojekyll"
+
     - run: apt update && apt install -y git
-    - run: cd docs && make html && cd build/html && touch .nojekyll
 
     - uses: actions/upload-artifact@v2
       with:
