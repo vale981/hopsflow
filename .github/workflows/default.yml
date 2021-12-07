@@ -20,7 +20,7 @@ jobs:
       with:
         extra_nix_config: |
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-    - run: nix develop -c "cd docs && make html && cd build/html && touch .nojekyll"
+    - run: nix develop -c bash -c "cd docs && make html && cd build/html && touch .nojekyll"
 
     - run: apt update && apt install -y git
 
