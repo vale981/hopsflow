@@ -256,9 +256,9 @@ def fit_α(
         fit_params.add(f"w{i}", value=0.1)
         fit_params.add(f"wi{i}", value=0.1)
 
-    ts = np.asarray(support_points)
-    if ts.size < 2:
-        ts = np.linspace(-0.1, t_max, support_points)
+    ts = support_points
+    if isinstance(ts, int):
+        ts = np.linspace(0, t_max, int(support_points))
 
     out = minimize(residual, fit_params, args=(ts, α(ts)))
 
