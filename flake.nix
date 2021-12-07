@@ -44,6 +44,7 @@
            lmfit
            '';
            propagatedBuildInputs = [stocprocPkg fcSplinePkg];
+           packagesExtra = [stocprocPkg fcSplinePkg];
          };
 
          pythonShell = mach-nix-wrapper.mkPythonShell {
