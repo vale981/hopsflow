@@ -43,7 +43,7 @@
            tqdm
            lmfit
            '';
-           propagatedBuildInputs = [stocprocPkg];
+           propagatedBuildInputs = [stocprocPkg fcSplinePkg];
          };
 
          pythonShell = mach-nix-wrapper.mkPythonShell {
