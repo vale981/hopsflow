@@ -5,6 +5,5 @@ tqdm
 lmfit
 sphinx
 pydata-sphinx-theme
-sphinx-autodoc-typehints
 data-science-types
 black
