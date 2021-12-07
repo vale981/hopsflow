@@ -283,3 +283,11 @@ def poly_real(p: Polynomial) -> Polynomial:
     new = p.copy()
     new.coef = p.coef.real
     return new
+
+
+def uni_to_gauss(x: np.ndarray):
+    """Transforms ``x`` into ``len(x)/2`` normal distributed numbers."""
+    n = len(x) // 2
+    phi = x[:n] * 2 * np.pi
+    r = np.sqrt(-np.log(x[n:]))
+    return r * np.exp(1j * phi)
