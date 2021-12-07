@@ -441,11 +441,11 @@
         "nixpkgs": "nixpkgs_8"
       },
       "locked": {
-        "lastModified": 1638901266,
-        "narHash": "sha256-uMV2XF56Mld7qAuWW5hpodfhprS0ptjMWgVfvqGc404=",
+        "lastModified": 1638907049,
+        "narHash": "sha256-wBZsK3QrqHUCQBDtKGVtaHmUOALvlrHWDYLZZrgQMzY=",
         "owner": "vale981",
         "repo": "stocproc",
-        "rev": "667be7d4ec74f94ce726e385a0178d380864647e",
+        "rev": "3a288fef7b402c8cb30ce86ebd5573fb556d17e5",
         "type": "github"
       },
       "original": {
