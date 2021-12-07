@@ -7,11 +7,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1638892486,
-        "narHash": "sha256-ANITlGYoZdojaH66wFr1N7JcAs9zuwYlj7m1soWt3js=",
+        "lastModified": 1638901147,
+        "narHash": "sha256-Vk6B3uYU+gAz2Vw//alCepa8Iwva6dWT002v8HX1Rrk=",
         "owner": "vale981",
         "repo": "fcSpline",
-        "rev": "006c24cb2a9428618eb59a957daf3b5e18387775",
+        "rev": "fb28080c8d48235194cf682c2628c22bfab6b555",
         "type": "github"
       },
       "original": {
@@ -441,11 +441,11 @@
         "nixpkgs": "nixpkgs_8"
       },
       "locked": {
-        "lastModified": 1638895266,
-        "narHash": "sha256-csjGM7AqHgE/lOwEDip0Lxz+XBvlkmibIcQI0yZkmE8=",
+        "lastModified": 1638901180,
+        "narHash": "sha256-o5e92UBo0rV8KLRWqmzZpZfOCV2ycOs8P6tdSGO2Ivo=",
         "owner": "vale981",
         "repo": "stocproc",
-        "rev": "72a1a7804860299e75f1ed5b228f009b51c21018",
+        "rev": "b0124485ad41cdadc00cec2054913646bab99ccc",
         "type": "github"
       },
       "original": {

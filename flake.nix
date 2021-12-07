@@ -12,8 +12,6 @@
    outputs = { self, nixpkgs, flake-utils, mach-nix, fcSpline, stocproc }:
      let
        python = "python39";
-       pypiDataRev = "master";
-       pypiDataSha256 = "041rpjrwwa43hap167jy8blnxvpvbfil0ail4y4mar1q5f0q57xx";
        devShell = pkgs:
          pkgs.mkShell {
            buildInputs = [
@@ -26,7 +24,7 @@
      in flake-utils.lib.eachSystem ["x86_64-linux"] (system:
        let
          pkgs = nixpkgs.legacyPackages.${system};
-         mach-nix-wrapper = import mach-nix { inherit pkgs python pypiDataRev pypiDataSha256; };
+         mach-nix-wrapper = import mach-nix { inherit pkgs python; };
 
 
 
