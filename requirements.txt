@@ -1,0 +1,6 @@
+numpy >= 1.20
+data-science-types
+scipy >= 1.6
+h5py
+sqlitedict
+tqdm
