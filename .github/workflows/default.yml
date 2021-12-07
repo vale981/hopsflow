@@ -6,15 +6,16 @@ on:
       - main
 
 jobs:
-  build:
+  build-docs:
 
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v1
-    # Standard drop-in approach that should work for most people.
+
     - uses: ammaraskar/sphinx-action@master
       with:
+        pre-build-command: "pip install -r requirements.txt"
         docs-folder: "docs/"
 
     - uses: actions/upload-artifact@v1
