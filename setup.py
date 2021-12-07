@@ -8,5 +8,12 @@ setup(
     author_email="hiro@protagon.space",
     url="https://github.com/vale981/hopsflow",
     packages=["hopsflow"],
-    install_requires=["numpy >= 1.20", "scipy >= 1.6", "h5py", "tqdm", "lmfit"],
+    install_requires=[
+        "numpy >= 1.20",
+        "scipy >= 1.6",
+        "h5py",
+        "tqdm",
+        "lmfit",
+        "stocproc",
+    ],
 )

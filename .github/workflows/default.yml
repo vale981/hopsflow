@@ -9,9 +9,15 @@ jobs:
   build-docs:
     runs-on: ubuntu-latest
     container: sphinxdoc/sphinx:latest
+
     steps:
     - uses: actions/checkout@v2
 
+    - uses: actions/cache@v2
+      with:
+        path: ~/.nix
+        key: always
+    - uses: jD91mZM2/nix-github@master
     - run: pip install -r requirements.txt
     - run: python setup.py install
     - run: apt update && apt install -y git

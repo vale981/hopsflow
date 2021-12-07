@@ -46,6 +46,8 @@
               url = "https://github.com/vale981/stocproc/archive/c81eead1b86d8da0caa5ec013b5fb65e9d3c3b79.tar.gz";
               sha256 = "00fvfmdcpkm9lp2zn8kzzn6msq7cypqhf87ihrf63ci5z4hg2jpl";
             };
+
+            _.stocproc.builInputs.add = [fcSpline];
             pname="stocproc";
             version = "1.0.1";
             requirements = ''
@@ -59,13 +61,17 @@
 
          requirements = builtins.readFile ./requirements.txt;
 
-         pythonShell = mach-nix-wrapper.mkPythonShell {
-           requirements = requirements;
-           packagesExtra = [fcSpline stocproc];
-           _.stocproc.buildInputs.add = [fcSpline];
+
+         pythonPackage = mach-nix-wrapper.buildPythonPackage {
+           src=./.;
+           _.hops.builInputs.add = [stocproc];
+           packagesExtra = [stocproc fcSpline];
          };
 
-         pythonPackage = mach-nix-wrapper.buildPythonPackage ./.;
+         pythonShell = mach-nix-wrapper.mkPythonShell {
+           requirements = requirements;
+           packagesExtra = [pythonPackage];
+         };
 
          mergeEnvs = envs:
            pkgs.mkShell (builtins.foldl' (a: v: {
