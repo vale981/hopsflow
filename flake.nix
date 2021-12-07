@@ -44,12 +44,11 @@
            lmfit
            '';
            propagatedBuildInputs = [stocprocPkg fcSplinePkg];
-           packagesExtra = [stocprocPkg fcSplinePkg];
          };
 
          pythonShell = mach-nix-wrapper.mkPythonShell {
            requirements = requirements;
-           packagesExtra = [hopsflow stocprocPkg fcSplinePkg];
+           packagesExtra = [hopsflow];
          };
 
          mergeEnvs = envs:
