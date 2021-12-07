@@ -22,11 +22,13 @@ def apply_operator(ψ: np.ndarray, op: np.ndarray) -> np.ndarray:
 
 
 def sandwhich_operator(
-    ψ: np.ndarray, op: np.ndarray, normalize: bool = False
+    ψ: np.ndarray,
+    op: np.ndarray,
+    normalize: bool = False,
 ) -> np.ndarray:
     """
     Applies the operator ``op`` to each element of the time
-         series ψ of the dimensions ``(*, dim)`` where ``dim`` is the
+         series ``ψ`` of the dimensions ``(*, dim)`` where ``dim`` is the
          hilbert space dimension and sandwiches ``ψ`` onto it from the
          left.  If ``normalize`` is :any:`True` then the value will be
          divided by the squared norm.
