@@ -14,6 +14,6 @@ setup(
         "h5py",
         "tqdm",
         "lmfit",
-        # "stocproc",
+        "stocproc>=1.0.1",
     ],
 )

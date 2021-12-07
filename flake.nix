@@ -34,9 +34,16 @@
          fcSplinePkg = fcSpline.defaultPackage.${system};
          stocprocPkg = stocproc.defaultPackage.${system};
 
-         hopsflow  = mach-nix-wrapper.buildPythonPackage {
-           src=./.;
-           propagatedBuildInputs = [fcSplinePkg];
+         hopsflow  = mach-nix-wrapper.buildPythonPackage rec {
+           src = ./.;
+           requirements = ''
+           numpy >= 1.20
+           scipy >= 1.6
+           h5py
+           tqdm
+           lmfit
+           '';
+           propagatedBuildInputs = [stocprocPkg];
          };
 
          pythonShell = mach-nix-wrapper.mkPythonShell {
