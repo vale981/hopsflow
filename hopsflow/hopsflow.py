@@ -131,12 +131,13 @@ class ThermalParams:
         numerical differentiation is used
     """
 
-    __slots__ = ["ξ", "τ", "dx", "order", "num_deriv"]
+    __slots__ = ["ξ", "τ", "dx", "order", "num_deriv", "rand_skip"]
 
     def __init__(
         self,
         ξ: StocProc,
         τ: np.ndarray,
+        rand_skip: int = 0,
         num_deriv: bool = False,
         dx: float = 1e-3,
         order: int = 3,
@@ -153,6 +154,7 @@ class ThermalParams:
         self.dx = dx
         self.order = order
         self.num_deriv = num_deriv
+        self.rand_skip = rand_skip
 
 
 class ThermalRunParams:
@@ -184,6 +186,7 @@ class ThermalRunParams:
         """
 
         np.random.seed(seed)
+        np.random.rand(therm_params.rand_skip)
         self.ξ_coeff = util.uni_to_gauss(np.random.rand(therm_params.ξ.get_num_y() * 2))  # type: ignore
         therm_params.ξ.new_process(self.ξ_coeff)
 
