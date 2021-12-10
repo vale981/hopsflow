@@ -15,7 +15,6 @@ jobs:
     - uses: actions/cache@v2
       with:
         path: /nix/
-        key: always
 
     - uses: cachix/install-nix-action@v15
       with:
