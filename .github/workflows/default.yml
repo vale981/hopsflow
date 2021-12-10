@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  build-docs:
+  build-and-docs:
     runs-on: ubuntu-latest
     environment: actions
     steps:
@@ -22,7 +22,7 @@ jobs:
         name: hops
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
         extraPullNames: nix-community
-    - run: nix build
+    - run: nix build -L
     - run: nix develop -c bash -c "cd docs && make html && cd build/html && touch .nojekyll"
 
     - uses: actions/upload-artifact@v2
