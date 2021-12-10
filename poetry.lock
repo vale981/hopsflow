@@ -92,7 +92,7 @@ scipy = "^1.7.3"
 type = "git"
 url = "https://github.com/vale981/fcSpline"
 reference = "master"
-resolved_reference = "bd614e2ebd58be8338315c3b0d0999ff0afabff2"
+resolved_reference = "5040ead827329deb92ebf52c6496738a86c78ec4"
 
 [[package]]
 name = "future"
@@ -428,7 +428,7 @@ scipy = "^1.7.3"
 type = "git"
 url = "https://github.com/vale981/stocproc"
 reference = "master"
-resolved_reference = "b7c6d760d34bde660402fe733d1617acf0692b74"
+resolved_reference = "426fe71fd28518baf2d42d09fb5c1a9ff5f46f32"
 
 [[package]]
 name = "toml"
