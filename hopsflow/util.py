@@ -190,6 +190,7 @@ def ensemble_mean(
     const_kwargs: dict = dict(),
     n_proc: Optional[int] = None,
     every: Optional[int] = None,
+    save: Optional[str] = None,
 ) -> EnsembleReturn:
 
     results = []
@@ -223,6 +224,10 @@ def ensemble_mean(
 
     if not every:
         results = results[-1]
+
+    if save:
+        with open(save, "wb") as f:
+            np.save(f, results)
 
     return results
 
