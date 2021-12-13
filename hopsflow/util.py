@@ -3,7 +3,6 @@
 import itertools
 import multiprocessing
 import numpy as np
-from numpy.lib.npyio import savetxt
 import scipy
 import scipy.integrate
 from typing import Iterator, Optional, Any, Callable, Union
@@ -194,6 +193,11 @@ def ensemble_mean(
     every: Optional[int] = None,
     save: Optional[str] = None,
 ) -> EnsembleReturn:
+
+    if save:
+        path = Path(save)
+        if path.exists():
+            return np.load(save)
 
     results = []
     aggregate = WelfordAggregator(function(next(arg_iter), *const_args))
