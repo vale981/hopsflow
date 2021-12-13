@@ -232,7 +232,7 @@ def ensemble_mean(
         path.parent.mkdir(parents=True, exist_ok=True)
 
         with path.open("wb") as f:
-            np.save(f, results)
+            np.save(f, np.array(results, dtype="object"))
 
     return results
 
