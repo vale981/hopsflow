@@ -229,7 +229,7 @@ def ensemble_mean(
 
     if save:
         path = Path(save)
-        path.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
         with path.open("wb") as f:
             np.save(f, results)
