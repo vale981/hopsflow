@@ -3,12 +3,14 @@
 import itertools
 import multiprocessing
 import numpy as np
+from numpy.lib.npyio import savetxt
 import scipy
 import scipy.integrate
 from typing import Iterator, Optional, Any, Callable, Union
 from lmfit import minimize, Parameters
 from numpy.polynomial import Polynomial
 from tqdm import tqdm
+from pathlib import Path
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -226,7 +228,10 @@ def ensemble_mean(
         results = results[-1]
 
     if save:
-        with open(save, "wb") as f:
+        path = Path(save)
+        path.mkdir(parents=True, exist_ok=True)
+
+        with path.open("wb") as f:
             np.save(f, results)
 
     return results
