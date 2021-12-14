@@ -73,7 +73,7 @@ class BCF:
             assert factors is not None
             assert exponents is not None
             self.factors = factors
-            self.exponents = factors
+            self.exponents = exponents
 
             if self.factors.size != self.exponents.size:
                 raise ValueError(
