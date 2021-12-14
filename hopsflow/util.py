@@ -197,7 +197,7 @@ def ensemble_mean(
     if save:
         path = Path(save)
         if path.exists():
-            return np.load(save)
+            return np.load(save, allow_pickle=True)
 
     results = []
     aggregate = WelfordAggregator(function(next(arg_iter), *const_args))
