@@ -395,6 +395,7 @@ def interaction_energy_ensemble(
     params: SystemParams,
     N: Optional[int],
     therm_args: Optional[Tuple[Iterator[int], ThermalParams]] = None,
+    **kwargs,
 ) -> util.EnsembleReturn:
     """Calculates the heat flow for an ensemble of trajectories.
 
@@ -406,6 +407,7 @@ def interaction_energy_ensemble(
     :param therm_args: the realization parameters and the parameter
         object, see :any:`ThermalParams`
 
+    The ``**kwargs`` are passed to :any:`hopsflow.utility.ensemble_mean`.
     :returns: the value of the flow for each time step
     """
 
@@ -414,6 +416,7 @@ def interaction_energy_ensemble(
         _interaction_energy_ensemble_body,
         N,
         (params, therm_args[1] if therm_args else None),
+        **kwargs,
     )
 
 
