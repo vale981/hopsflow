@@ -9,7 +9,7 @@ repository = "https://github.com/vale981/hopsflow"
 [tool.poetry.dependencies]
 python = ">=3.9,<3.11"
 sqlitedict = "^1.7.0"
-numpy = "^1.21.4"
+numpy = "^1.20.0"
 scipy = "^1.7.3"
 stocproc = { git = "https://github.com/vale981/stocproc" }
 tqdm = "^4.62.3"
