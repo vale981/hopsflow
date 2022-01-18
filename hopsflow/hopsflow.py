@@ -246,8 +246,7 @@ def flow_trajectory_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarr
         2
         * (
             run.normalize_maybe(np.sum(run.ψ_coup.conj() * run.ψ_0, axis=1))
-            * therm_run.ξ_dot
-            * np.sqrt(0.2)
+            * therm_run.ξ_dot  # note: this is already scaled by stocproc
         ).real
     )
     return flow
