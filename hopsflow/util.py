@@ -10,6 +10,10 @@ from lmfit import minimize, Parameters
 from numpy.polynomial import Polynomial
 from tqdm import tqdm
 from pathlib import Path
+import sys
+import hashlib
+import logging
+import json
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -192,15 +196,34 @@ def ensemble_mean(
     n_proc: Optional[int] = None,
     every: Optional[int] = None,
     save: Optional[str] = None,
+    overwrite_cache: bool = False,
 ) -> EnsembleReturn:
-
-    if save:
-        path = Path("results") / Path(f"{save}_{N}_every.npy")
-        if path.exists():
-            return np.load(save, allow_pickle=True)
 
     results = []
     aggregate = WelfordAggregator(function(next(arg_iter), *const_args))
+
+    path = None
+    json_meta_info = json.dumps(
+        dict(
+            N=N,
+            every=every,
+            const_args=const_args,
+            const_kwargs=const_kwargs,
+            function_name=function.__name__,
+            first_iterator_value=np.array2string(aggregate.mean, threshold=sys.maxsize),
+        ),
+        default=lambda _: "<not-hashed>",
+    ).encode("utf-8")
+
+    if save:
+        key = hashlib.sha256(json_meta_info).hexdigest()
+        path = Path("results") / Path(
+            f"{save}_{function.__name__}_{N}_{every}_{key}.npy"
+        )
+
+        if not overwrite_cache and path.exists():
+            logging.info(f"Loading cache from: {path}")
+            return np.load(str(path), allow_pickle=True)
 
     if N == 1:
         results = [(1, aggregate.mean, np.zeros_like(aggregate.mean))]
@@ -231,12 +254,14 @@ def ensemble_mean(
     if not every:
         results = results[-1]
 
-    if save:
-        path = Path(save)
+    if path:
         path.parent.mkdir(parents=True, exist_ok=True)
-
+        logging.info(f"Writing cache to: {path}")
         with path.open("wb") as f:
             np.save(f, np.array(results, dtype="object"))
+
+        with path.with_suffix(".json").open("wb") as f:
+            f.write(json_meta_info)
 
     return results
 
