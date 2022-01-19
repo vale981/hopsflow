@@ -1,7 +1,7 @@
 """Calculate the energy flow into the bath for a simple gaussian
-  Quantum Brownian Motion model.
+Quantum Brownian Motion model.
 
-  This is done analytically for a BCF that is a sum of exponentials.
+This is done analytically for a BCF that is a sum of exponentials.
 """
 
 import numpy as np
@@ -18,15 +18,16 @@ class BCF:
     r"""A parameter object to hold information about a BCF.
 
     The BCFs will be expanded into a sum of exponentials like
-    :math:`\alpha(\tau) = \sum_k G_k \cdot \exp(-W_k\cdot\tau)`.
-    You can either give the BCFs as parameter or the coefficients.
-    If you give the BCFs, the fit will be performed automatically.
+    :math:`\alpha(\tau) = \sum_k G_k \cdot \exp(-W_k\cdot\tau)`.  You
+    can either give the BCFs as parameter or the coefficients.  If
+    you give the BCFs, the fit will be performed automatically.
 
     Calling this object will call the wrapped BCF function.
 
-    :param resolution: the precision in the sampling for the fit, ``t_max/precision``
-        points will be used
-    :param num_terms: the number of terms of the expansion of the BCF expansion
+    :param resolution: the precision in the sampling for the fit,
+        ``t_max/precision`` points will be used
+    :param num_terms: the number of terms of the expansion of the BCF
+        expansion
     """
 
     def __init__(
