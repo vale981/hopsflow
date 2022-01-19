@@ -6,11 +6,10 @@ This is done analytically for a BCF that is a sum of exponentials.
 
 import numpy as np
 import itertools
-from dataclasses import dataclass, field, InitVar
-from typing import Callable, Union, Optional
+from dataclasses import dataclass, field
+from typing import Callable, Optional
 import numpy.typing as npt
 from . import util
-import functools
 from numpy.polynomial import Polynomial
 
 
