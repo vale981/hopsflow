@@ -195,7 +195,7 @@ def ensemble_mean(
 ) -> EnsembleReturn:
 
     if save:
-        path = Path(save)
+        path = Path("results") / Path(f"{save}_{N}_every.npy")
         if path.exists():
             return np.load(save, allow_pickle=True)
 
