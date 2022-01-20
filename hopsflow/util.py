@@ -14,6 +14,7 @@ import sys
 import hashlib
 import logging
 import json
+from functools import singledispatch
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -187,6 +188,19 @@ class WelfordAggregator:
         return np.sqrt(self.ensemble_variance)
 
 
+@singledispatch
+def custom_json(obj: Any) -> str:
+    if np.isscalar(obj):
+        return str(obj)
+
+    return f"<{type(obj)} (not-hashed)>"
+
+
+@custom_json.register(np.ndarray)
+def _(arr: np.ndarray) -> str:
+    return np.array2string(arr, threshold=sys.maxsize)
+
+
 def ensemble_mean(
     arg_iter: Iterator[Any],
     function: Callable[..., np.ndarray],
@@ -210,9 +224,9 @@ def ensemble_mean(
             const_args=const_args,
             const_kwargs=const_kwargs,
             function_name=function.__name__,
-            first_iterator_value=np.array2string(aggregate.mean, threshold=sys.maxsize),
+            first_iterator_value=aggregate.mean,
         ),
-        default=lambda _: "<not-hashed>",
+        default=custom_json,
     ).encode("utf-8")
 
     if save:
