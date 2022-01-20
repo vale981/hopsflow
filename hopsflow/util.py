@@ -193,6 +193,9 @@ def custom_json(obj: Any) -> str:
     if np.isscalar(obj):
         return str(obj)
 
+    if hasattr(obj, "__bfkey__"):
+        return f"<{type(obj)} ({obj.__bfkey__()})>"
+
     return f"<{type(obj)} (not-hashed)>"
 
 
