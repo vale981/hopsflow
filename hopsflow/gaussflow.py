@@ -1,9 +1,3 @@
-"""Calculate the energy flow into the bath for a simple gaussian
-Quantum Brownian Motion model.
-
-This is done analytically for a BCF that is a sum of exponentials.
-"""
-
 import numpy as np
 import itertools
 from dataclasses import dataclass, field
@@ -11,83 +5,7 @@ from typing import Callable, Optional
 import numpy.typing as npt
 from . import util
 from numpy.polynomial import Polynomial
-
-
-class BCF:
-    r"""A parameter object to hold information about a BCF.
-
-    The BCFs will be expanded into a sum of exponentials like
-    :math:`\alpha(\tau) = \sum_k G_k \cdot \exp(-W_k\cdot\tau)`.  You
-    can either give the BCFs as parameter or the coefficients.  If
-    you give the BCFs, the fit will be performed automatically.
-
-    Calling this object will call the wrapped BCF function.
-
-    :param resolution: the precision in the sampling for the fit,
-        ``t_max/precision`` points will be used
-    :param num_terms: the number of terms of the expansion of the BCF
-        expansion
-    """
-
-    def __init__(
-        self,
-        t_max: float,
-        function: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-        num_terms: Optional[int] = None,
-        resolution: Optional[float] = None,
-        factors: Optional[np.ndarray] = None,
-        exponents: Optional[np.ndarray] = None,
-    ):
-
-        #: the maximum simulation time
-        self.t_max = t_max
-
-        if function is not None:
-            #: the BCF as python function, will be set to the exponential
-            #: expansion if the BCF coefficients are given.
-            self.function = function
-
-            if num_terms is None or resolution is None:
-                raise ValueError(
-                    "Either give the function, the number of terms and the resolution or the coefficients."
-                )
-
-            _exponents, _factors = util.fit_α(
-                self.function,
-                num_terms,
-                self.t_max,
-                int(self.t_max / resolution),
-            )
-            #: the factors in the BCF expansion
-            self.factors = _factors
-
-            #: the exponents in the BCF expansion
-            self.exponents = _exponents
-
-        else:
-            if factors is None or exponents is None:
-                raise ValueError(
-                    "Either give the function and number of terms or the coefficients."
-                )
-
-            assert factors is not None
-            assert exponents is not None
-            self.factors = factors
-            self.exponents = exponents
-
-            if self.factors.size != self.exponents.size:
-                raise ValueError(
-                    "Factors and exponents have to have the same dimension."
-                )
-
-            self.function = self.approx
-
-    def approx(self, t: np.ndarray) -> np.ndarray:
-        """The BCF as exponential expansion."""
-        return util.α_apprx(t, self.factors, self.exponents)
-
-    def __call__(self, t: np.ndarray):
-        return self.function(t)
+from .util import BCF, expand_t
 
 
 @dataclass
@@ -201,14 +119,6 @@ You can try to alter the number of terms in the expansion of the BCF."""
     return master_roots, resiquals
 
 
-def _expand_t(f):
-    def wrapped(self, t):
-        t = np.expand_dims(np.asarray(t), axis=0)
-        return f(self, t)
-
-    return wrapped
-
-
 class Propagator:
     """The propagator matrix :math:`G` for the system.
 
@@ -233,15 +143,15 @@ class Propagator:
         self._elements = np.array([[self.el_11, self.el_12], [self.el_21, self.el_22]])
         pass
 
-    @_expand_t
+    @expand_t
     def el_11(self, t):
         return (self._res_times_roots * np.exp(t * self._roots_exp)).real.sum(axis=0)
 
-    @_expand_t
+    @expand_t
     def el_12(self, t):
         return self._Ω * (self._res_exp * np.exp(t * self._roots_exp)).real.sum(axis=0)
 
-    @_expand_t
+    @expand_t
     def el_21(self, t):
         return (self._res_times_roots_squared * np.exp(t * self._roots_exp)).real.sum(
             axis=0
@@ -254,7 +164,7 @@ class Propagator:
         """Get an individual matrix elment as function."""
         return self._elements[indices]
 
-    @_expand_t
+    @expand_t
     def __call__(self, t) -> np.ndarray:
         """Get the propagator as array of shape ``(time, 2, 2)``."""
 
