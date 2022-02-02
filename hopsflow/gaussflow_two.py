@@ -5,11 +5,14 @@ This is done analytically for a BCF that is a sum of exponentials.
 """
 
 from dataclasses import dataclass, field
-import util
-from .util import BCF, expand_t
+from . import util
+from .util import BCF
 import numpy as np
 from numpy.typing import NDArray
 from numpy.polynomial import Polynomial
+from typing import Union, Optional
+from itertools import product
+from numba import jit
 
 
 @dataclass
@@ -219,12 +222,8 @@ class Propagator:
         self.params = sys
         self._roots, self._res = calculate_coefficients(sys)
 
-    @expand_t
-    def __call__(self, t: NDArray[np.float64]) -> np.ndarray:
-        """Get the propagator as array of shape ``(time, 4, 4)``."""
-
         mat = self._res
-        residual_matrix = np.array(
+        self._residual_matrix = np.array(
             [
                 [mat[0], mat[1], mat[2], mat[3]],
                 [mat[4], mat[0], mat[5], mat[6]],
@@ -233,12 +232,187 @@ class Propagator:
             ]
         )
 
+    def propagator(self, t: Union[NDArray[np.float64], float]) -> np.ndarray:
+        """
+        Get the propagator as array of shape ``(time, 4, 4)`` or
+        ``(4, 4)`` if ``t`` is a float.
+        """
+        t = np.asarray(t)
+        was_float = False
+        if t.shape == tuple():
+            t = np.array([t])
+            was_float = True
+
+        res = np.sum(
+            self._residual_matrix[None, :, :, :]
+            * np.exp(self._roots[None, :] * t[:, None])[:, None, None, :],
+            axis=3,
+        ).real
+
+        return res[0] if was_float else res
+
+    def __call__(self, *args, **kwargs):
+        return self.propagator(*args, **kwargs)
+
+    def inv(self, t: float) -> np.ndarray:
+        """Get the inverse of the propagator matrix at time ``t``."""
+
+        return np.linalg.inv(self.__call__(t))
+
+
+class CorrelationMatrix(Propagator):
+    def __init__(
+        self,
+        sys: SystemParams,
+        initial_corr: np.ndarray,
+        αs: tuple[Optional[BCF], Optional[BCF]] = (None, None),
+    ):
+        super().__init__(sys)
+
+        self.G = self._residual_matrix
+        self.Ge = -self._roots
+
+        α = []
+        αe = []
+
+        for i, bcf in enumerate(αs):
+            if bcf:
+                α.append(bcf.factors)
+                αe.append(bcf.exponents)
+            else:
+                α.append(self.params.G[i])
+                αe.append(self.params.W[i])
+
+        self.αc = np.array(list(map(np.conj, α)), dtype=object)
+        self.αce = np.array(list(map(np.conj, αe)), dtype=object)
+        self.α = np.array(α, dtype=object)
+        self.αe = np.array(αe, dtype=object)
+        self.initial_corr = initial_corr
+
+    @jit
+    def __call__(
+        self,
+        t: np.ndarray,
+        s: Optional[np.ndarray] = None,
+    ) -> NDArray[np.complex128]:
+        r"""Caluclate the corellation matrix :math:`\langle x_i(t)
+        x_j(s)\rangle` of the system.
+
+        :param t: The first time point.
+        :param s: The second timepoint.
+        :param αs: The (finite temparature) bath correlation
+            functions.  If they're :any:`None` they're chosen to be
+            the zero temperature BCF.
+        :param initial_corr: The initial correlation matrix
+            :math:`\langle x_i[] x_j\rangle`.
+        """
+
+        s = s or t
+
+        G = self.G[None, :, :, :]
+        Ge = self.Ge
+        αc = self.αc
+        αce = self.αce
+        α = self.α
+        αe = self.αe
+        initial_corr = self.initial_corr
+
+        if (s > t).any():
+            raise ValueError("`s` must be smaller than or equal to `t`")
+
+        Gt = self.propagator(t)
+        Gs = self.propagator(s)
+
+        result = np.einsum("tik,tjl,kl->tij", Gt, Gs, initial_corr)
+        # (Gt @ initial_corr[None, :, :]) @ Gs.T
+
+        for l in range(len(α)):
+            for i, j, m, n, g in product(
+                range(G.shape[0]),
+                range(G.shape[0]),
+                range(Ge.shape[0]),
+                range(Ge.shape[0]),
+                range(len(α[l])),
+            ):
+                # straight from mathematica
+
+                result[:, i, j] += (
+                    G[:, i, l, m]
+                    * G[:, j, l, n]
+                    * (
+                        (
+                            αc[l, g]
+                            * (
+                                (-np.exp(s * Ge[n]) + np.exp(s * αce[l, g])) * Ge[m]
+                                - np.exp(s * Ge[n]) * Ge[n]
+                                + np.exp(s * (Ge[m] + Ge[n] + αce[l, g]))
+                                * (Ge[n] - αce[l, g])
+                                + np.exp(s * αce[l, g]) * αce[l, g]
+                            )
+                        )
+                        / (
+                            np.exp(s * (Ge[n] + αce[l, g]))
+                            * (Ge[n] - αce[l, g])
+                            * (Ge[m] + αce[l, g])
+                        )
+                        + (
+                            np.exp(-(s * Ge[n]) - t * αe[l, g])
+                            * α[l, g]
+                            * (
+                                -(
+                                    np.exp(t * Ge[m])
+                                    * (-1 + np.exp(s * (Ge[n] + αe[l, g])))
+                                    * Ge[m]
+                                )
+                                + (
+                                    np.exp(t * Ge[m])
+                                    - np.exp(t * αe[l, g])
+                                    + np.exp(s * (Ge[m] + Ge[n]) + t * αe[l, g])
+                                    - np.exp(t * Ge[m] + s * (Ge[n] + αe[l, g]))
+                                )
+                                * Ge[n]
+                                + np.exp(t * αe[l, g])
+                                * (-1 + np.exp(s * (Ge[m] + Ge[n])))
+                                * αe[l, g]
+                            )
+                        )
+                        / ((-Ge[m] + αe[l, g]) * (Ge[n] + αe[l, g]))
+                    )
+                ) / (np.exp(t * Ge[m]) * (Ge[m] + Ge[n]))
+
+        return result
+
+    def system_energy(self, t: np.ndarray) -> float:
+        corr = np.real(np.diagonal(self.__call__(t), axis1=1, axis2=2))
+
+        Ω = self.params.Ω
+        Λ = self.params.Λ
+        γ = self.params.γ
+
         return (
-            np.sum(
-                residual_matrix * np.exp(self._roots * t)[None, None, :], axis=2
-            ).real
-            * 2
+            1
+            / 4
+            * (
+                Ω * corr[:, 0]  # type: ignore
+                + (Ω + γ) * corr[:, 1]  # type: ignore
+                + Λ * corr[:, 2]  # type: ignore
+                + (Λ + γ) * corr[:, 3]  # type: ignore
+            )
         )
 
-    def inv(self, t) -> np.ndarray:
-        return np.linalg.inv(self.__call__(t))
+
+def initial_correlation_pure_osci(n: int, m: int):
+    r"""
+    Initial correlation matrix :math:`\langle x_i[] x_j\rangle` for
+    two HO in product eigenstates with labels ``n`` and ``m``.
+    """
+    corr = np.diag(
+        np.array([1 + 2 * n, 1 + 2 * n, 1 + 2 * m, 1 + 2 * m], dtype=np.complex128)
+    )
+
+    corr[0, 1] = 1j
+    corr[1, 0] = -1j
+    corr[2, 3] = 1j
+    corr[3, 2] = -1j
+
+    return corr
