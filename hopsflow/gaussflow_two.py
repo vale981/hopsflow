@@ -10,9 +10,9 @@ from .util import BCF
 import numpy as np
 from numpy.typing import NDArray
 from numpy.polynomial import Polynomial
-from typing import Union, Optional
+from typing import Generator, Union, Optional
 from itertools import product
-from numba import jit
+from collections.abc import Iterator
 
 
 @dataclass
@@ -260,6 +260,10 @@ class Propagator:
         return np.linalg.inv(self.__call__(t))
 
 
+def iterate_ragged(*ranges: int) -> Iterator[tuple[int, ...]]:
+    return product(*(range(r) for r in ranges))
+
+
 class CorrelationMatrix(Propagator):
     def __init__(
         self,
@@ -270,7 +274,7 @@ class CorrelationMatrix(Propagator):
         super().__init__(sys)
 
         self.G = self._residual_matrix
-        self.Ge = -self._roots
+        self.G_e = -self._roots
 
         α = []
         αe = []
@@ -289,7 +293,6 @@ class CorrelationMatrix(Propagator):
         self.αe = np.array(αe, dtype=object)
         self.initial_corr = initial_corr
 
-    @jit
     def __call__(
         self,
         t: np.ndarray,
@@ -310,7 +313,7 @@ class CorrelationMatrix(Propagator):
         s = s or t
 
         G = self.G[None, :, :, :]
-        Ge = self.Ge
+        Ge = self.G_e
         αc = self.αc
         αce = self.αce
         α = self.α
@@ -327,12 +330,12 @@ class CorrelationMatrix(Propagator):
         # (Gt @ initial_corr[None, :, :]) @ Gs.T
 
         for l in range(len(α)):
-            for i, j, m, n, g in product(
-                range(G.shape[0]),
-                range(G.shape[0]),
-                range(Ge.shape[0]),
-                range(Ge.shape[0]),
-                range(len(α[l])),
+            for i, j, m, n, g in iterate_ragged(
+                G.shape[0],
+                G.shape[0],
+                Ge.shape[0],
+                Ge.shape[0],
+                len(α[l]),
             ):
                 # straight from mathematica
 
@@ -382,7 +385,7 @@ class CorrelationMatrix(Propagator):
 
         return result
 
-    def system_energy(self, t: np.ndarray) -> float:
+    def system_energy(self, t: np.ndarray) -> np.ndarray:
         corr = np.real(np.diagonal(self.__call__(t), axis1=1, axis2=2))
 
         Ω = self.params.Ω
@@ -399,6 +402,163 @@ class CorrelationMatrix(Propagator):
                 + (Λ + γ) * corr[:, 3]  # type: ignore
             )
         )
+
+    def Q1(self, t: float, u: int) -> complex:
+        G = self.G
+        G_e = self.G_e
+
+        ic = self.initial_corr
+        α0d_e = self.params.W[u]
+        α0d = -self.params.G[u] * self.params.W[u]
+
+        result = 0
+        for j, h, k, l, m in iterate_ragged(
+            G.shape[1], G.shape[2], G.shape[1], G.shape[2], len(α0d_e)
+        ):
+            result += (
+                (np.exp(t * G_e[h]) - np.exp(t * α0d_e[m]))
+                * G[2 * u, j, h]
+                * G[2 * u, k, l]
+                * ic[k, j]
+                * α0d[m]
+            ) / (np.exp(t * (G_e[h] + G_e[l] + α0d_e[m])) * (G_e[h] - α0d_e[m]))
+
+        return result
+
+    def Q2(self, t: float, u: int) -> complex:
+        G = self.G
+        G_e = self.G_e
+
+        αc = self.αc
+        αc_e = self.αce
+        α = self.α
+        α_e = self.αe
+        α0d_e = self.params.W[u]
+        α0d = -self.params.G[u] * self.params.W[u]
+
+        result = 0
+        for l, m, n, r, g in iterate_ragged(
+            len(α_e), G.shape[2], G.shape[2], len(α0d_e), len(α0d_e)
+        ):
+            result += (
+                G[2 * u, l, m]
+                * G[2 * u, l, n]
+                * α0d[r]
+                * (
+                    (
+                        α[l, g]
+                        * (
+                            -(
+                                (
+                                    (G_e[m] + G_e[n])
+                                    * (G_e[n] + α_e[l, g])
+                                    * (G_e[m] + α0d_e[r])
+                                )
+                                / np.exp(t * (α_e[l, g] + α0d_e[r]))
+                            )
+                            + (
+                                (G_e[m] + G_e[n])
+                                * (G_e[n] + α_e[l, g])
+                                * (α_e[l, g] + α0d_e[r])
+                            )
+                            / np.exp(t * (G_e[m] + α0d_e[r]))
+                            + (
+                                (G_e[m] + G_e[n])
+                                * (G_e[m] + α0d_e[r])
+                                * (α_e[l, g] + α0d_e[r])
+                            )
+                            / np.exp(t * (G_e[n] + α_e[l, g]))
+                            - (
+                                (G_e[n] + α_e[l, g])
+                                * (G_e[m] + α0d_e[r])
+                                * (α_e[l, g] + α0d_e[r])
+                            )
+                            / np.exp(t * (G_e[m] + G_e[n]))
+                            + (G_e[m] - α_e[l, g])
+                            * (G_e[n] - α0d_e[r])
+                            * (G_e[m] + G_e[n] + α_e[l, g] + α0d_e[r])
+                        )
+                    )
+                    / (
+                        (G_e[m] + G_e[n])
+                        * (G_e[m] - α_e[l, g])
+                        * (G_e[n] + α_e[l, g])
+                        * (G_e[n] - α0d_e[r])
+                        * (G_e[m] + α0d_e[r])
+                        * (α_e[l, g] + α0d_e[r])
+                    )
+                    + αc[l, g]
+                    * (
+                        -(
+                            1
+                            / (
+                                np.exp(t * (G_e[m] + G_e[n]))
+                                * (G_e[m] + G_e[n])
+                                * (G_e[n] - α0d_e[r])
+                                * (G_e[n] - αc_e[l, g])
+                            )
+                        )
+                        + 1
+                        / (
+                            np.exp(t * (G_e[m] + α0d_e[r]))
+                            * (G_e[n] - α0d_e[r])
+                            * (G_e[m] + α0d_e[r])
+                            * (α0d_e[r] - αc_e[l, g])
+                        )
+                        + 1
+                        / (
+                            (G_e[m] + G_e[n])
+                            * (G_e[m] + α0d_e[r])
+                            * (G_e[m] + αc_e[l, g])
+                        )
+                        + 1
+                        / (
+                            np.exp(t * (G_e[m] + αc_e[l, g]))
+                            * (G_e[n] - αc_e[l, g])
+                            * (G_e[m] + αc_e[l, g])
+                            * (-α0d_e[r] + αc_e[l, g])
+                        )
+                    )
+                )
+            )
+
+        return result
+
+    def Q3(self, t: float, u: int) -> complex:
+        G = self.G
+        G_e = self.G_e
+
+        αd = np.array([-self.αe[i] * self.α[i] for i in range(2)], dtype=object)
+        αd_e = np.array([self.αe[i] for i in range(2)], dtype=object)
+        α0d_e = np.array([self.params.W[i] for i in range(2)], dtype=object)
+        α0d = np.array(
+            [-self.params.G[i] * self.params.W[i] for i in range(2)], dtype=object
+        )
+
+        result = 0
+        for k, i, l in iterate_ragged(2, G.shape[2], len(α0d)):
+            for j in range(len(α0d)):
+                result += (
+                    (G[2 * u, 1 + 2 * k, i] * α0d[k, l]) / (-G_e[i] - α0d_e[k, l])
+                    - (
+                        np.exp(-(t * G_e[i]) - t * α0d_e[k, l])
+                        * G[2 * u, 1 + 2 * k, i]
+                        * α0d[k, l]
+                    )
+                    / (-G_e[i] - α0d_e[k, l])
+                    - (G[2 * u, 1 + 2 * k, i] * αd[k, j]) / (-G_e[i] - αd_e[k, j])
+                    + (
+                        np.exp(-(t * G_e[i]) - t * αd_e[k, j])
+                        * G[2 * u, 1 + 2 * k, i]
+                        * αd[k, j]
+                    )
+                    / (-G_e[i] - αd_e[k, j])
+                )
+
+        return result
+
+    def flow(self, t: float, u: int) -> complex:
+        return 1 / 2 * (-(self.Q1(t, u) + self.Q2(t, u)).imag + self.Q3(t, u).real)
 
 
 def initial_correlation_pure_osci(n: int, m: int):
