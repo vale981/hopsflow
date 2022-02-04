@@ -4,7 +4,7 @@ from itertools import product
 def iterate_ragged(*ranges: int):
     return product(*(range(r) for r in ranges))
 
-cdef Q2(np.ndarray t,
+def Q2(np.ndarray t,
         int u,
         np.ndarray G,
         np.ndarray G_e,
