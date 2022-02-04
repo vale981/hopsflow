@@ -9,7 +9,7 @@ def build(setup_kwargs):
     This function is mandatory in order to build the extensions.
     """
 
-    extensions = ["./hopsflow/gassflow_two_formulas.pyx"]
+    extensions = ["./hopsflow/gaussflow_two_formulas.pyx"]
 
     # gcc arguments hack: enable optimizations
     os.environ["CFLAGS"] = f"-O3 -I{numpy.get_include()}"

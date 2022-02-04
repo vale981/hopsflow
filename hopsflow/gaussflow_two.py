@@ -13,6 +13,7 @@ from numpy.polynomial import Polynomial
 from typing import Generator, Union, Optional
 from itertools import product
 from collections.abc import Iterator
+from . import gaussflow_two_formulas as formulas
 
 
 @dataclass
@@ -403,7 +404,7 @@ class CorrelationMatrix(Propagator):
             )
         )
 
-    def Q1(self, t: float, u: int) -> complex:
+    def Q1(self, t: np.ndarray, u: int) -> NDArray[np.complex128]:
         G = self.G
         G_e = self.G_e
 
@@ -411,7 +412,7 @@ class CorrelationMatrix(Propagator):
         α0d_e = self.params.W[u]
         α0d = -self.params.G[u] * self.params.W[u]
 
-        result = 0
+        result = np.zeros_like(t, dtype=np.complex128)
         for j, h, k, l, m in iterate_ragged(
             G.shape[1], G.shape[2], G.shape[1], G.shape[2], len(α0d_e)
         ):
@@ -425,7 +426,7 @@ class CorrelationMatrix(Propagator):
 
         return result
 
-    def Q2(self, t: float, u: int) -> complex:
+    def Q2(self, t: np.ndarray, u: int) -> NDArray[np.complex128]:
         G = self.G
         G_e = self.G_e
 
@@ -436,7 +437,7 @@ class CorrelationMatrix(Propagator):
         α0d_e = self.params.W[u]
         α0d = -self.params.G[u] * self.params.W[u]
 
-        result = 0
+        result = np.zeros_like(t, dtype=np.complex128)
         for l, m, n, r, g in iterate_ragged(
             len(α_e), G.shape[2], G.shape[2], len(α0d_e), len(α0d_e)
         ):
@@ -524,7 +525,7 @@ class CorrelationMatrix(Propagator):
 
         return result
 
-    def Q3(self, t: float, u: int) -> complex:
+    def Q3(self, t: np.ndarray, u: int) -> NDArray[np.complex128]:
         G = self.G
         G_e = self.G_e
 
@@ -535,7 +536,7 @@ class CorrelationMatrix(Propagator):
             [-self.params.G[i] * self.params.W[i] for i in range(2)], dtype=object
         )
 
-        result = 0
+        result = np.zeros_like(t, dtype=np.complex128)
         for k, i, l in iterate_ragged(2, G.shape[2], len(α0d)):
             for j in range(len(α0d)):
                 result += (
@@ -557,8 +558,10 @@ class CorrelationMatrix(Propagator):
 
         return result
 
-    def flow(self, t: float, u: int) -> complex:
-        return 1 / 2 * (-(self.Q1(t, u) + self.Q2(t, u)).imag + self.Q3(t, u).real)
+    def flow(self, t: np.ndarray, u: int) -> NDArray[np.float64]:
+        return (
+            1 / 2 * (-np.imag(self.Q1(t, u) + self.Q2(t, u)) + np.imag(self.Q3(t, u)))
+        )
 
 
 def initial_correlation_pure_osci(n: int, m: int):

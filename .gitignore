@@ -147,3 +147,4 @@ cython_debug/
 #.idea/
 /setup.py
 /.direnv/
+/hopsflow/gaussflow_two_formulas.c
