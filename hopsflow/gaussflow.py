@@ -38,7 +38,7 @@ class SystemParams:
         self.t_max = self.α_0.t_max
 
         self.W = self.α_0.exponents
-        self.G = self.α_0.factors * self.η
+        self.G = self.α_0.factors.copy() * self.η
 
 
 def construct_polynomials(sys: SystemParams) -> tuple[Polynomial, Polynomial]:
@@ -208,7 +208,7 @@ class Flow:
         self.L = α_0_dot.exponents
 
         #: the pre-factors in the BCF derivative expansion
-        self.P = α_0_dot.factors * system.η
+        self.P = α_0_dot.factors.copy() * system.η
 
         self.C, self.B = calculate_coefficients(system)
 
@@ -228,14 +228,14 @@ class Flow:
         self.W = α.exponents
 
         #: the pre-factors factors in the BCF expansion
-        self.G = α.factors * system.η
+        self.G = α.factors.copy() * system.η
 
         #: the exponential factors in the zero temperature BCF
         #: expansion :math:`\alpha=\sum_k U_k e^{-Q_k \cdot t}`
         self.Q = system.α_0.exponents
 
         #: the pre-factors factors in the zero temperature BCF expansion
-        self.U = system.α_0.factors * system.η
+        self.U = system.α_0.factors.copy() * system.η
 
         #: the expectation value :math:`\langle q(0)^2\rangle`
         self.q_s_0 = 1 + 2 * n
@@ -386,7 +386,9 @@ class Flow:
             / 2
             * (
                 -self.system.Ω * result
-                + self.prop.el_12(t) * (self.α(t) - self.α_0(t)) * self.system.η
+                + self.prop.el_12(t)
+                * (self.α.approx(t) - self.α_0.approx(t))
+                * self.system.η
             )
         ).real
 
