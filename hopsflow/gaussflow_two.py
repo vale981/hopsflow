@@ -395,12 +395,16 @@ class CorrelationMatrix(Propagator):
         Λ = self.params.Λ
         γ = self.params.γ
 
-        return 1 / 4 * (
-            Ω * corr[:, 0]  # type: ignore
-            + (Ω + γ) * corr[:, 1]  # type: ignore
-            + Λ * corr[:, 2]  # type: ignore
-            + (Λ + γ) * corr[:, 3]  # type: ignore
-        ) + 1 / 2 * γ * np.real(correlation_matrix[:, 0, 2])
+        return (
+            1
+            / 4
+            * (
+                (Ω + γ) * corr[:, 0]  # type: ignore
+                + Ω * corr[:, 1]  # type: ignore
+                + (Λ + γ) * corr[:, 2]  # type: ignore
+                + Λ * corr[:, 3]  # type: ignore
+            )
+        ) - 1 / 2 * γ * np.real(correlation_matrix[:, 0, 2])
 
     def Q1(self, t: np.ndarray, u: int) -> NDArray[np.complex128]:
         G = self.G
