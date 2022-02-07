@@ -10,6 +10,7 @@
     (utils.lib.poetry2nixWrapper nixpkgs {
       name = "hopsflow";
       shellPackages = pkgs: with pkgs; [ black pyright ];
+      python = pkgs: pkgs.python39;
       poetryArgs = {
         projectDir = ./.;
       };
