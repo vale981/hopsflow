@@ -112,13 +112,14 @@ def sandwhich_operator(
     ψ: np.ndarray,
     op: np.ndarray,
     normalize: bool = False,
+    real: bool = False,
 ) -> np.ndarray:
     """
-    Applies the operator ``op`` to each element of the time
-         series ``ψ`` of the dimensions ``(*, dim)`` where ``dim`` is the
-         hilbert space dimension and sandwiches ``ψ`` onto it from the
-         left.  If ``normalize`` is :any:`True` then the value will be
-         divided by the squared norm.
+    Applies the operator ``op`` to each element of the time series
+    ``ψ`` of the dimensions ``(*, dim)`` where ``dim`` is the hilbert
+    space dimension and sandwiches ``ψ`` onto it from the left.  If
+    ``normalize`` is :any:`True` then the value will be divided by the
+    squared norm.  If ``real`` is :any:`True`, the real part is returned.
     """
 
     exp_val = np.sum(ψ.conj() * apply_operator(ψ, op), axis=1)
@@ -126,18 +127,28 @@ def sandwhich_operator(
     if normalize:
         exp_val /= np.sum(ψ.conj() * ψ, axis=1).real
 
+    if real:
+        exp_val = np.real(exp_val)
+
     return exp_val
 
 
-def operator_expectation(ρ: np.ndarray, op: np.ndarray) -> np.ndarray:
+def operator_expectation(
+    ρ: np.ndarray, op: np.ndarray, real: bool = False
+) -> np.ndarray:
     """Calculates the expecation value of ``op`` as a time series.
 
     :param ρ: The state as time series. ``(time, dim-sys, dim-sys)``
     :param op: The operator.
+    :param real: Whether to take the real part.
     :returns: the expectation value
     """
 
-    return np.einsum("ijk,kj", ρ, op).real
+    expect = np.einsum("ijk,kj", ρ, op)
+    if real:
+        expect = np.real(expect)
+
+    return expect
 
 
 def operator_expectation_ensemble(
@@ -145,6 +156,7 @@ def operator_expectation_ensemble(
     op: np.ndarray,
     N: Optional[int],
     normalize: bool = False,
+    real: bool = False,
     **kwargs,
 ) -> EnsembleReturn:
     """Calculates the expecation value of ``op`` as a time series.
@@ -153,6 +165,7 @@ def operator_expectation_ensemble(
         element should have the shape  ``(time, dim-sys)``.
     :param op: The operator.
     :param N: Number of samples to take.
+    :param real: Whether to take the real part.
 
     All the other kwargs are passed on to :any:`ensemble_mean`.
 
@@ -160,7 +173,7 @@ def operator_expectation_ensemble(
     """
 
     return ensemble_mean(
-        ψs, sandwhich_operator, N, const_args=(op, normalize), **kwargs
+        ψs, sandwhich_operator, N, const_args=(op, normalize, real), **kwargs
     )
 
 
