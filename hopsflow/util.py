@@ -5,6 +5,7 @@ import multiprocessing
 import numpy as np
 import scipy
 import scipy.integrate
+import scipy.optimize
 from typing import Iterator, Optional, Any, Callable, Union
 from lmfit import minimize, Parameters
 from numpy.polynomial import Polynomial
@@ -15,7 +16,7 @@ import hashlib
 import logging
 import json
 from functools import singledispatch
-
+from scipy.stats import NumericalInverseHermite
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -210,7 +211,8 @@ def α_apprx(τ: np.ndarray, G: np.ndarray, W: np.ndarray) -> np.ndarray:
     """
 
     return np.sum(
-        G[np.newaxis, :] * np.exp(-W[np.newaxis, :] * (τ[:, np.newaxis])), axis=1
+        G[np.newaxis, :] * np.exp(-W[np.newaxis, :] * (τ[:, np.newaxis])),
+        axis=1,
     )
 
 
@@ -374,16 +376,45 @@ def ensemble_mean(
     return results
 
 
+class BCFDist(scipy.stats.rv_continuous):
+    """A distribution based on the absolute value of the BCF."""
+
+    def __init__(self, α: Callable[[np.ndarray], np.ndarray], **kwargs):
+        super().__init__(**kwargs)
+        self._α = α
+        self._norm = scipy.integrate.quad(
+            lambda t: np.abs(self._α(np.array([t]))), 0, np.inf
+        )
+
+    def _pdf(self, x: np.ndarray):
+        return np.abs(self._α(x)) / self._norm
+
+
 def fit_α(
     α: Callable[[np.ndarray], np.ndarray],
     n: int,
     t_max: float,
-    support_points: Union[int, np.ndarray] = 1000,
+    support_points: int = 1000,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Fit the BCF ``α`` to a sum of ``n`` exponentials up to
     ``t_max`` using a number of ``support_points``.
     """
+
+    norm = scipy.integrate.quad(lambda t: np.abs(α(np.array([t]))), 0, t_max)[0]
+    max = -scipy.optimize.minimize(
+        lambda t: -np.abs(α(np.array([t])))[0], [0], bounds=((0, np.inf),)
+    ).fun[0]
+
+    hit_prop = norm / (max * t_max)
+
+    rng = np.random.default_rng(1)
+    ts = rng.random(size=int(support_points / hit_prop) + 1) * t_max
+    ys = rng.random(size=len(ts)) * max
+    mask = ys < np.abs(α(ts))
+
+    ts = ts[mask]
+    ts = np.append(ts, [0])
 
     def residual(fit_params, x, data):
         resid = 0
@@ -399,14 +430,21 @@ def fit_α(
 
     fit_params = Parameters()
     for i in range(n):
-        fit_params.add(f"g{i}", value=0.1)
-        fit_params.add(f"gi{i}", value=0.1)
-        fit_params.add(f"w{i}", value=0.1)
+        fit_params.add(f"w{i}", value=0.1, min=0)
         fit_params.add(f"wi{i}", value=0.1)
+        fit_params.add(f"g{i}", value=0.1)
+        fit_params.add(f"gi{i}", value=0)
 
-    ts = support_points
-    if isinstance(ts, int):
-        ts = np.linspace(0, t_max, int(support_points))
+        # if i == n - 1:
+        #     expr_im = "0"
+        #     # expr_re = "0"
+        #     for j in range(n - 1):
+        #         expr_im += f"+gi{j}"
+        #         # expr_re += f"+g{j}"
+
+        #     fit_params.add(f"gi{i}", expr=f"-({expr_im})")
+        # else:
+        #     fit_params.add(f"gi{i}", value=0)
 
     out = minimize(residual, fit_params, args=(ts, α(ts)))
 
