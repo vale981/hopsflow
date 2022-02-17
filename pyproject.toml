@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hopsflow"
-version = "1.0.5"
+version = "1.0.6"
 description = "Calculating open system bath energy changes with HOPS and analytically."
 authors = ["Valentin Boettcher <hiro at protagon.space>"]
 license = "MIT"
