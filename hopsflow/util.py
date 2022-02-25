@@ -15,7 +15,7 @@ import sys
 import hashlib
 import logging
 import json
-from functools import singledispatch
+from functools import singledispatch, singledispatchmethod
 from scipy.stats import NumericalInverseHermite
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
@@ -281,20 +281,40 @@ class WelfordAggregator:
         return np.sqrt(self.ensemble_variance)
 
 
-@singledispatch
-def custom_json(obj: Any) -> str:
-    if np.isscalar(obj):
-        return str(obj)
+class JSONEncoder(json.JSONEncoder):
+    """
+    A custom encoder to serialize objects occuring in
+    :any:`ensemble_mean`.
+    """
 
-    if hasattr(obj, "__bfkey__"):
-        return f"<{type(obj)} ({obj.__bfkey__()})>"
+    @singledispatchmethod
+    def default(self, obj: Any):
+        if hasattr(obj, "__bfkey__"):
+            return f"<{type(obj)} ({obj.__bfkey__()})>"
 
-    return f"<{type(obj)} (not-hashed)>"
+        return super().default(obj)
+
+    @default.register
+    def _(self, arr: np.ndarray):
+        return {"type": "array", "value": arr.tolist()}
+
+    @default.register
+    def _(self, obj: complex):
+        return {"type": "complex", "re": obj.real, "im": obj.imag}
 
 
-@custom_json
-def _(arr: np.ndarray) -> str:
-    return np.array2string(arr, threshold=sys.maxsize)
+def _object_hook(dct: dict[str, Any]):
+    """A custom decoder for the types introduced in :any:`JSONEncoder`."""
+    if "type" in dct:
+        type = dct["type"]
+
+        if type == "array":
+            return np.array(dct["value"])
+
+        if type == "complex":
+            return dct["re"] + 1j * dct["im"]
+
+    return dct
 
 
 def ensemble_mean(
@@ -322,7 +342,8 @@ def ensemble_mean(
             function_name=function.__name__,
             first_iterator_value=aggregate.mean,
         ),
-        default=custom_json,
+        cls=JSONEncoder,
+        ensure_ascii=False,
     ).encode("utf-8")
 
     if save:
