@@ -292,7 +292,7 @@ def custom_json(obj: Any) -> str:
     return f"<{type(obj)} (not-hashed)>"
 
 
-@custom_json.register(np.ndarray)
+@custom_json
 def _(arr: np.ndarray) -> str:
     return np.array2string(arr, threshold=sys.maxsize)
 
