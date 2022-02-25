@@ -673,7 +673,7 @@ tests = ["pytest", "typeguard", "pygments", "littleutils"]
 
 [[package]]
 name = "stocproc"
-version = "1.0.4"
+version = "1.0.5"
 description = "Generate continuous time stationary stochastic processes from a given auto correlation function."
 category = "main"
 optional = false
@@ -683,14 +683,14 @@ develop = false
 [package.dependencies]
 fcSpline = {git = "https://github.com/vale981/fcSpline", branch = "master"}
 mpmath = "^1.2.1"
-numpy = "^1.20.3"
+numpy = "^1.22.2"
 scipy = "^1.7.3"
 
 [package.source]
 type = "git"
 url = "https://github.com/vale981/stocproc"
 reference = "master"
-resolved_reference = "8ab49cf379815f43afc8d190153bac0f5fe46f2a"
+resolved_reference = "6687f5aa07aea254625bca6c50abf460f190ebc7"
 
 [[package]]
 name = "toml"
