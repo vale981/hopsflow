@@ -465,12 +465,16 @@ class CorrelationMatrix(Propagator):
             G.shape[1], G.shape[2], G.shape[1], G.shape[2], len(α0d_e)
         ):
             result += (
-                (np.exp(t * G_e[h]) - np.exp(t * α0d_e[m]))
-                * G[2 * u, j, h]
-                * G[2 * u, k, l]
-                * ic[k, j]
-                * α0d[m]
-            ) / (np.exp(t * (G_e[h] + G_e[l] + α0d_e[m])) * (G_e[h] - α0d_e[m]))
+                (
+                    (np.exp(t * G_e[h]) - np.exp(t * α0d_e[m]))
+                    * G[2 * u, j, h]
+                    * G[2 * u, k, l]
+                    * ic[k, j]
+                    * α0d[m]
+                )
+                * np.exp(-t * (G_e[h] + G_e[l] + α0d_e[m]))
+                / ((G_e[h] - α0d_e[m]))
+            )
 
         return result
 
@@ -492,30 +496,6 @@ class CorrelationMatrix(Propagator):
                     (G[2 * u, 1 + 2 * l, m] * G[2 * u, 1 + 2 * l, n] * α0d[r] * α[l][g])
                     / ((G_e[m] + G_e[n]) * (G_e[m] + α0d_e[r]) * (G_e[n] + α_e[l][g]))
                     - (
-                        np.exp(-(t * G_e[m]) - t * α0d_e[r])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * α[l][g]
-                    )
-                    / ((G_e[m] + G_e[n]) * (G_e[m] + α0d_e[r]) * (G_e[n] + α_e[l][g]))
-                    - (
-                        np.exp(-(t * G_e[m]) - t * G_e[n])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * α[l][g]
-                    )
-                    / ((G_e[m] + G_e[n]) * (-G_e[n] + α0d_e[r]) * (G_e[n] + α_e[l][g]))
-                    + (
-                        np.exp(-(t * G_e[m]) - t * α0d_e[r])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * α[l][g]
-                    )
-                    / ((G_e[m] + G_e[n]) * (-G_e[n] + α0d_e[r]) * (G_e[n] + α_e[l][g]))
-                    - (
                         G[2 * u, 1 + 2 * l, m]
                         * G[2 * u, 1 + 2 * l, n]
                         * α0d[r]
@@ -526,61 +506,13 @@ class CorrelationMatrix(Propagator):
                         * (G_e[m] - α_e[l][g])
                         * (G_e[n] + α_e[l][g])
                     )
-                    + (
-                        np.exp(-(t * G_e[m]) - t * α0d_e[r])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * α[l][g]
-                    )
-                    / (
-                        (G_e[m] + α0d_e[r])
-                        * (G_e[m] - α_e[l][g])
-                        * (G_e[n] + α_e[l][g])
-                    )
-                    + (
-                        np.exp(-(t * G_e[m]) - t * G_e[n])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * α[l][g]
-                    )
-                    / (
-                        (-G_e[n] + α0d_e[r])
-                        * (G_e[m] - α_e[l][g])
-                        * (G_e[n] + α_e[l][g])
-                    )
                     - (
-                        np.exp(-(t * G_e[m]) - t * α0d_e[r])
-                        * G[2 * u, 1 + 2 * l, m]
+                        G[2 * u, 1 + 2 * l, m]
                         * G[2 * u, 1 + 2 * l, n]
                         * α0d[r]
                         * α[l][g]
                     )
-                    / (
-                        (-G_e[n] + α0d_e[r])
-                        * (G_e[m] - α_e[l][g])
-                        * (G_e[n] + α_e[l][g])
-                    )
-                    - (
-                        np.exp(-(t * G_e[n]) - t * α_e[l][g])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * α[l][g]
-                    )
-                    / (
-                        (-G_e[n] + α0d_e[r])
-                        * (G_e[m] - α_e[l][g])
-                        * (G_e[n] + α_e[l][g])
-                    )
-                    + (
-                        np.exp(-(t * α0d_e[r]) - t * α_e[l][g])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * α[l][g]
-                    )
+                    * np.exp(-t * (G_e[n] + α_e[l][g]))
                     / (
                         (-G_e[n] + α0d_e[r])
                         * (G_e[m] - α_e[l][g])
@@ -597,18 +529,69 @@ class CorrelationMatrix(Propagator):
                         * (G_e[n] + α_e[l][g])
                         * (α0d_e[r] + α_e[l][g])
                     )
-                    - (
-                        np.exp(-(t * α0d_e[r]) - t * α_e[l][g])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * α[l][g]
+                    + (
+                        (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * α[l][g]
+                        )
+                        / (
+                            (-G_e[n] + α0d_e[r])
+                            * (G_e[m] - α_e[l][g])
+                            * (G_e[n] + α_e[l][g])
+                        )
+                        - (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * α[l][g]
+                        )
+                        / (
+                            (G_e[m] - α_e[l][g])
+                            * (G_e[n] + α_e[l][g])
+                            * (α0d_e[r] + α_e[l][g])
+                        )
                     )
-                    / (
-                        (G_e[m] - α_e[l][g])
-                        * (G_e[n] + α_e[l][g])
-                        * (α0d_e[r] + α_e[l][g])
+                    * np.exp(-t * (α0d_e[r] + α_e[l][g]))
+                    + (
+                        -(
+                            (
+                                G[2 * u, 1 + 2 * l, m]
+                                * G[2 * u, 1 + 2 * l, n]
+                                * α0d[r]
+                                * α[l][g]
+                            )
+                            / (
+                                (G_e[m] + G_e[n])
+                                * (-G_e[n] + α0d_e[r])
+                                * (G_e[n] + α_e[l][g])
+                            )
+                        )
+                        + (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * α[l][g]
+                        )
+                        / (
+                            (-G_e[n] + α0d_e[r])
+                            * (G_e[m] - α_e[l][g])
+                            * (G_e[n] + α_e[l][g])
+                        )
+                        + (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * αc[l][g]
+                        )
+                        / (
+                            (G_e[m] + G_e[n])
+                            * (-G_e[n] + α0d_e[r])
+                            * (G_e[n] - αc_e[l][g])
+                        )
                     )
+                    * np.exp(-t * (G_e[m] + G_e[n]))
                     - (
                         G[2 * u, 1 + 2 * l, m]
                         * G[2 * u, 1 + 2 * l, n]
@@ -616,30 +599,6 @@ class CorrelationMatrix(Propagator):
                         * αc[l][g]
                     )
                     / ((G_e[m] + G_e[n]) * (G_e[m] + α0d_e[r]) * (G_e[n] - αc_e[l][g]))
-                    + (
-                        np.exp(-(t * G_e[m]) - t * α0d_e[r])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * αc[l][g]
-                    )
-                    / ((G_e[m] + G_e[n]) * (G_e[m] + α0d_e[r]) * (G_e[n] - αc_e[l][g]))
-                    + (
-                        np.exp(-(t * G_e[m]) - t * G_e[n])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * αc[l][g]
-                    )
-                    / ((G_e[m] + G_e[n]) * (-G_e[n] + α0d_e[r]) * (G_e[n] - αc_e[l][g]))
-                    - (
-                        np.exp(-(t * G_e[m]) - t * α0d_e[r])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * αc[l][g]
-                    )
-                    / ((G_e[m] + G_e[n]) * (-G_e[n] + α0d_e[r]) * (G_e[n] - αc_e[l][g]))
                     + (
                         G[2 * u, 1 + 2 * l, m]
                         * G[2 * u, 1 + 2 * l, n]
@@ -652,41 +611,110 @@ class CorrelationMatrix(Propagator):
                         * (G_e[m] + αc_e[l][g])
                     )
                     - (
-                        np.exp(-(t * G_e[m]) - t * α0d_e[r])
-                        * G[2 * u, 1 + 2 * l, m]
+                        G[2 * u, 1 + 2 * l, m]
                         * G[2 * u, 1 + 2 * l, n]
                         * α0d[r]
                         * αc[l][g]
                     )
+                    * np.exp(-t * (G_e[m] + αc_e[l][g]))
                     / (
-                        (G_e[m] + α0d_e[r])
-                        * (G_e[n] - αc_e[l][g])
+                        (G_e[n] - αc_e[l][g])
+                        * (α0d_e[r] - αc_e[l][g])
                         * (G_e[m] + αc_e[l][g])
                     )
                     + (
-                        np.exp(-(t * G_e[m]) - t * α0d_e[r])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * αc[l][g]
+                        -(
+                            (
+                                G[2 * u, 1 + 2 * l, m]
+                                * G[2 * u, 1 + 2 * l, n]
+                                * α0d[r]
+                                * α[l][g]
+                            )
+                            / (
+                                (G_e[m] + G_e[n])
+                                * (G_e[m] + α0d_e[r])
+                                * (G_e[n] + α_e[l][g])
+                            )
+                        )
+                        + (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * α[l][g]
+                        )
+                        / (
+                            (G_e[m] + G_e[n])
+                            * (-G_e[n] + α0d_e[r])
+                            * (G_e[n] + α_e[l][g])
+                        )
+                        + (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * α[l][g]
+                        )
+                        / (
+                            (G_e[m] + α0d_e[r])
+                            * (G_e[m] - α_e[l][g])
+                            * (G_e[n] + α_e[l][g])
+                        )
+                        - (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * α[l][g]
+                        )
+                        / (
+                            (-G_e[n] + α0d_e[r])
+                            * (G_e[m] - α_e[l][g])
+                            * (G_e[n] + α_e[l][g])
+                        )
+                        + (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * αc[l][g]
+                        )
+                        / (
+                            (G_e[m] + G_e[n])
+                            * (G_e[m] + α0d_e[r])
+                            * (G_e[n] - αc_e[l][g])
+                        )
+                        - (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * αc[l][g]
+                        )
+                        / (
+                            (G_e[m] + G_e[n])
+                            * (-G_e[n] + α0d_e[r])
+                            * (G_e[n] - αc_e[l][g])
+                        )
+                        - (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * αc[l][g]
+                        )
+                        / (
+                            (G_e[m] + α0d_e[r])
+                            * (G_e[n] - αc_e[l][g])
+                            * (G_e[m] + αc_e[l][g])
+                        )
+                        + (
+                            G[2 * u, 1 + 2 * l, m]
+                            * G[2 * u, 1 + 2 * l, n]
+                            * α0d[r]
+                            * αc[l][g]
+                        )
+                        / (
+                            (G_e[n] - αc_e[l][g])
+                            * (α0d_e[r] - αc_e[l][g])
+                            * (G_e[m] + αc_e[l][g])
+                        )
                     )
-                    / (
-                        (G_e[n] - αc_e[l][g])
-                        * (α0d_e[r] - αc_e[l][g])
-                        * (G_e[m] + αc_e[l][g])
-                    )
-                    - (
-                        np.exp(-(t * G_e[m]) - t * αc_e[l][g])
-                        * G[2 * u, 1 + 2 * l, m]
-                        * G[2 * u, 1 + 2 * l, n]
-                        * α0d[r]
-                        * αc[l][g]
-                    )
-                    / (
-                        (G_e[n] - αc_e[l][g])
-                        * (α0d_e[r] - αc_e[l][g])
-                        * (G_e[m] + αc_e[l][g])
-                    )
+                    * np.exp(-t * (G_e[m] + α0d_e[r]))
                 )
 
         return result
