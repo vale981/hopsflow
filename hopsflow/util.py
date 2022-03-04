@@ -344,6 +344,9 @@ def ensemble_mean(
         ),
         cls=JSONEncoder,
         ensure_ascii=False,
+        default=lambda obj: obj.__dict__
+        if hasattr(obj, "__dict__")
+        else "<not serializable>",
     ).encode("utf-8")
 
     if save:
@@ -353,7 +356,7 @@ def ensemble_mean(
         )
 
         if not overwrite_cache and path.exists():
-            logging.info(f"Loading cache from: {path}")
+            logging.warning(f"Loading cache from: {path}")
             return np.load(str(path), allow_pickle=True)
 
     if N == 1:
