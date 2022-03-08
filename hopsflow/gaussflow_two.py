@@ -460,7 +460,7 @@ class CorrelationMatrix(Propagator):
         G_e = self.G_e
 
         ic = self.initial_corr
-        α0d_e = self.params.W[u]
+        α0d_e = self.params.W[u].copy()
         α0d = -self.params.G[u] * self.params.W[u]
 
         result = np.zeros_like(t, dtype=np.complex128)
@@ -739,26 +739,26 @@ class CorrelationMatrix(Propagator):
         )
 
         result = np.zeros_like(t, dtype=np.complex128)
-        for k, i in iterate_ragged(len(αd), len(G_e)):
-            for j in range(len(αd[k])):
+        for i in range(len(G_e)):
+            for j in range(len(αd[u])):
                 result += -(
-                    (G[2 * u, 1 + 2 * k, i] * αd[k][j]) / (-G_e[i] - αd_e[k][j])
+                    (G[2 * u, 1 + 2 * u, i] * αd[u][j]) / (-G_e[i] - αd_e[u][j])
                 ) + (
-                    exp(-t * (G_e[i] + αd_e[k][j])) * G[2 * u, 1 + 2 * k, i] * αd[k][j]
+                    exp(-t * (G_e[i] + αd_e[u][j])) * G[2 * u, 1 + 2 * u, i] * αd[u][j]
                 ) / (
-                    -G_e[i] - αd_e[k][j]
+                    -G_e[i] - αd_e[u][j]
                 )
 
-        for k, i in iterate_ragged(len(α0d), len(G_e)):
-            for l in range(len(α0d[k])):
-                result += (G[2 * u, 1 + 2 * k, i] * α0d[k][l]) / (
-                    -G_e[i] - α0d_e[k][l]
+        for i in range(len(G_e)):
+            for l in range(len(α0d[u])):
+                result += (G[2 * u, 1 + 2 * u, i] * α0d[u][l]) / (
+                    -G_e[i] - α0d_e[u][l]
                 ) - (
-                    exp(-t * (G_e[i] + α0d_e[k][l]))
-                    * G[2 * u, 1 + 2 * k, i]
-                    * α0d[k][l]
+                    exp(-t * (G_e[i] + α0d_e[u][l]))
+                    * G[2 * u, 1 + 2 * u, i]
+                    * α0d[u][l]
                 ) / (
-                    -G_e[i] - α0d_e[k][l]
+                    -G_e[i] - α0d_e[u][l]
                 )
 
         return result
