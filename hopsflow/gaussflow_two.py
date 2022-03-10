@@ -309,7 +309,7 @@ class CorrelationMatrix(Propagator):
             functions.  If they're :any:`None` they're chosen to be
             the zero temperature BCF.
         :param initial_corr: The initial correlation matrix
-            :math:`\langle x_i[] x_j\rangle`.
+            :math:`\langle x_i x_j\rangle`.
         """
 
         G = self.G
