@@ -374,7 +374,6 @@ def ensemble_mean(
         result_iter = pool.imap_unordered(
             _ensemble_mean_call,
             itertools.islice(arg_iter, None, N - 1 if N else None),
-            10,
         )
 
         for res in tqdm(result_iter, total=(N - 1) if N else None):
@@ -425,20 +424,31 @@ def fit_α(
     ``t_max`` using a number of ``support_points``.
     """
 
-    norm = scipy.integrate.quad(lambda t: np.abs(α(np.array([t]))), 0, t_max)[0]
-    max = -scipy.optimize.minimize(
+    max_sol = scipy.optimize.minimize(
         lambda t: -np.abs(α(np.array([t])))[0], [0], bounds=((0, np.inf),)
-    ).fun[0]
+    )
+    max = -max_sol.fun[0]
+    t_at_max = max_sol.x[0]
 
-    hit_prop = norm / (max * t_max)
+    t_tail = scipy.optimize.newton(
+        lambda t: np.abs(α(np.array([t]))[0]) - max / 100,
+        t_at_max + 0.1,
+    )
 
-    rng = np.random.default_rng(1)
-    ts = rng.random(size=int(support_points / hit_prop) + 1) * t_max
-    ys = rng.random(size=len(ts)) * max
-    mask = ys < np.abs(α(ts))
+    # norm = scipy.integrate.quad(lambda t: np.abs(α(np.array([t]))), 0, t_tail)[0]
 
-    ts = ts[mask]
-    ts = np.append(ts, [0])
+    # hit_prop = norm / (max * t_tail)
+
+    # rng = np.random.default_rng(1)
+    # ts = rng.random(size=int(support_points * 2 / 3 / hit_prop) + 1) * t_tail
+    # ys = rng.random(size=len(ts)) * max
+    # mask = ys < np.abs(α(ts))
+
+    # ts = ts[mask]
+
+    ts = np.linspace(0, t_tail, int(support_points * 2 / 3) + 1)
+    ts = np.append(ts, np.linspace(t_tail, t_max, int(support_points * 1 / 3)))
+    # ts = np.linspace(0, t_max, support_points)
 
     def residual(fit_params, x, data):
         resid = 0
@@ -470,7 +480,7 @@ def fit_α(
         # else:
         #     fit_params.add(f"gi{i}", value=0)
 
-    out = minimize(residual, fit_params, args=(ts, α(ts)))
+    out = minimize(residual, fit_params, args=(ts, α(ts)), method="least_squares")
 
     w = np.array([out.params[f"w{i}"] for i in range(n)]) + 1j * np.array(
         [out.params[f"wi{i}"] for i in range(n)]
