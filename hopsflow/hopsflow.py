@@ -36,6 +36,7 @@ class SystemParams:
         "W",
         "bcf_scale",
         "nonlinear",
+        "coupling_interaction_prefactors",
         "coupling_flow_prefactors",
         "dim",
     ]
@@ -56,9 +57,14 @@ class SystemParams:
         self.G = [g * scale for g, scale in zip(G, bcf_scale)] if bcf_scale else G
         self.W = W
 
-        self.coupling_flow_prefactors = [
-            W * (-np.sqrt(G) if fock_hops else 1j * G) for G, W in zip(self.G, self.W)
+        self.coupling_interaction_prefactors = [
+            (np.sqrt(G) if fock_hops else -1j * G) for G in self.G
         ]
+
+        self.coupling_flow_prefactors = [
+            fac * -W for fac, W in zip(self.coupling_interaction_prefactors, self.W)
+        ]
+
         self.nonlinear = nonlinear
 
         #: the dimensionality of the system
@@ -236,7 +242,6 @@ def flow_trajectory_coupling(
     energy flow for a single trajectory and for each bath.
 
     :param run: a parameter object for the current trajectory, see :any:`HOPSRun`
-    :param therma_run: a parameter object for the current thermal process, see :any:`HOPSRun`
     :param params: a parameter object for the system, see :any:`SystemParams`
 
     :returns: the value of the flow for each time step
@@ -303,36 +308,59 @@ def flow_trajectory(
     return flow
 
 
-# def interaction_energy_coupling(run: HOPSRun, params: SystemParams) -> np.ndarray:
-#     """Calculates the coupling part of the interaction energy
-#     expectation value for a trajectory.
+def interaction_energy_coupling(
+    run: HOPSRun,
+    params: SystemParams,
+) -> np.ndarray:
+    r"""Calculates the coupling part of the interaction energy
+    expectation value for a trajectory.
 
-#     :param run: a parameter object, see :any:`HOPSRun`
-#     :param params: a parameter object for the system, see
-#         :any:`SystemParams`
+    :param run: a parameter object for the current trajectory, see :any:`HOPSRun`
+    :param params: a parameter object for the system, see :any:`SystemParams`
 
-#     :returns: the value of the coupling interaction energy for each time step
-#     """
+    :returns: the value of the interaction energy for each time step
+    """
 
-#     ψ_hops = util.mulitply_hierarchy(-1j * params.G * params.bcf_scale, run.ψ_1)
-#     energy = util.dot_with_hierarchy(run.ψ_coup.conj(), ψ_hops).real * 2
-#     return run.normalize_maybe(energy)
+    # here we apply the prefactors to each hierarchy state
+    ψ_hopses = [
+        util.mulitply_hierarchy(f, ψ_1)
+        for f, ψ_1 in zip(params.coupling_interaction_prefactors, run.ψ_1_n)
+    ]
+
+    flows = np.array(
+        [
+            2 * util.dot_with_hierarchy(ψ_coup.conj(), ψ_hops).real
+            for ψ_coup, ψ_hops in zip(run.ψ_coups, ψ_hopses)
+        ]
+    )  # fromiter crashed...
+
+    # optionally normalize
+    return run.normalize_maybe(flows)
 
 
-# def interaction_energy_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarray:
-#     r"""Calculates the thermal part of the interaction energy.
+def interaction_energy_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarray:
+    r"""Calculates the thermal part of the interaction energy.
 
-#     :param run: a parameter object, see :any:`HOPSRun`
-#     :param therm_run: a parameter object, see :any:`ThermalParams`
-#     :returns: the value of the thermal interaction for each time step
-#     """
+    :param run: a parameter object, see :any:`HOPSRun`
+    :param therm_run: a parameter object, see :any:`ThermalParams`
+    :returns: the value of the thermal interaction for each time step
+    """
 
-#     energy = (
-#         run.normalize_maybe((run.ψ_coup.conj() * run.ψ_0).sum(axis=1))
-#         * therm_run.ξ_values
-#     ).real * 2
+    energies = np.array(
+        [
+            2
+            * (
+                run.normalize_maybe(np.sum(ψ_coup.conj() * run.ψ_0, axis=1)) * ξ
+                if ξ is not None
+                else np.zeros(
+                    ψ_coup.shape[0]
+                )  # note: this is already scaled by stocproc
+            ).real
+            for ψ_coup, ξ in zip(run.ψ_coups, therm_run.ξ_values)
+        ]
+    )
 
-#     return energy
+    return energies
 
 
 ###############################################################################
@@ -400,85 +428,51 @@ def heat_flow_ensemble(
     )
 
 
-# def _interaction_energy_ensemble_body(
-#     ψs: Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, int]],
-#     params: SystemParams,
-#     thermal: ThermalParams,
-# ) -> np.ndarray:
-#     ψ_0, ψ_1 = ψs[0:2]
+def _interaction_energy_ensemble_body(
+    ψs: Tuple[np.ndarray, np.ndarray, int],
+    params: SystemParams,
+    thermal: Optional[ThermalParams],
+) -> np.ndarray:
+    ψ_0, ψ_1, seeds = ψs
 
-#     ys = None
-#     if len(ψs) == 3:
-#         ys = ψs[-1]
+    run = HOPSRun(ψ_0, ψ_1, params)
+    energy = interaction_energy_coupling(run, params)
 
-#     run = HOPSRun(ψ_0, ψ_1, params)
-#     energy = interaction_energy_coupling(run, params)
+    if thermal is not None:
+        therm_run = ThermalRunParams(thermal, seeds)
+        energy += interaction_energy_therm(run, therm_run)
 
-#     if isinstance(ys, int):
-#         therm_run = ThermalRunParams(thermal, ys)
-#         energy += interaction_energy_therm(run, therm_run)
-
-#     return energy
+    return energy
 
 
-# def interaction_energy_ensemble(
-#     ψ_0s: Iterator[np.ndarray],
-#     ψ_1s: Iterator[np.ndarray],
-#     params: SystemParams,
-#     N: Optional[int],
-#     therm_args: Optional[Tuple[Iterator[int], ThermalParams]] = None,
-#     **kwargs,
-# ) -> util.EnsembleReturn:
-#     """Calculates the heat flow for an ensemble of trajectories.
+def interaction_energy_ensemble(
+    ψ_0s: Iterator[np.ndarray],
+    ψ_1s: Iterator[np.ndarray],
+    params: SystemParams,
+    N: Optional[int],
+    therm_args: Optional[Tuple[Iterator[int], ThermalParams]] = None,
+    **kwargs,
+) -> util.EnsembleReturn:
+    """Calculates the heat flow for an ensemble of trajectories.
 
-#     :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``
-#     :param ψ_0s: array of the first HOPS hierarchy states ``(N, time,
-#         hierarchy-width * dim-state)``
-#     :param params: a parameter object for the system, see
-#         :any:`SystemParams`
-#     :param therm_args: the realization parameters and the parameter
-#         object, see :any:`ThermalParams`
+    :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``
+    :param ψ_0s: array of the first HOPS hierarchy states ``(N, time,
+        hierarchy-width * dim-state)``
+    :param params: a parameter object for the system, see
+        :any:`SystemParams`
+    :param therm_args: the realization parameters and the parameter
+        object, see :any:`ThermalParams`
 
-#     The ``**kwargs`` are passed to :any:`hopsflow.utility.ensemble_mean`.
-#     :returns: the value of the flow for each time step
-#     """
+    The ``**kwargs`` are passed to :any:`hopsflow.utility.ensemble_mean`.
+    :returns: the value of the flow for each time step
+    """
 
-#     return util.ensemble_mean(
-#         iter(zip(ψ_0s, ψ_1s, therm_args[0])) if therm_args else iter(zip(ψ_0s, ψ_1s)),
-#         _interaction_energy_ensemble_body,
-#         N,
-#         (params, therm_args[1] if therm_args else None),
-#         **kwargs,
-#     )
-
-
-# def _shift_expectation_body(
-#     ψs: Tuple[np.ndarray, np.ndarray],
-#     params: SystemParams,
-#     thermal: ThermalParams,
-# ):
-#     ψ_0, ys = ψs[0:2]
-#     run = ThermalRunParams(thermal, ys)
-#     shift_expectation = (
-#         util.sandwhich_operator(ψ_0, params.L.conj().T, normalize=False)
-#         * run.ξ_values[:, ...]
-#     )
-
-#     return np.gradient(shift_expectation.real * 2, thermal.τ, axis=0)
-
-
-# def shift_energy_ensemble(
-#     ψ_0s: Iterator[np.ndarray],
-#     params: SystemParams,
-#     N: Optional[int],
-#     therm_args: Tuple[Iterator[np.ndarray], ThermalParams],
-#     **kwargs,
-# ) -> np.ndarray:
-
-#     return util.ensemble_mean(
-#         iter(zip(ψ_0s, therm_args[0])),
-#         _shift_expectation_body,
-#         N,
-#         const_args=(params, therm_args[1]),
-#         **kwargs,
-#     )
+    return util.ensemble_mean(
+        iter(zip(ψ_0s, ψ_1s, therm_args[0]))
+        if therm_args
+        else iter(zip(ψ_0s, ψ_1s, itertools.repeat(0))),
+        _interaction_energy_ensemble_body,
+        N,
+        (params, therm_args[1] if therm_args else None),
+        **kwargs,
+    )
