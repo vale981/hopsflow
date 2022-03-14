@@ -418,10 +418,13 @@ def fit_α(
     n: int,
     t_max: float,
     support_points: int = 1000,
+    with_cache: bool = True,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Fit the BCF ``α`` to a sum of ``n`` exponentials up to
-    ``t_max`` using a number of ``support_points``.
+    Fit the BCF ``α`` to a sum of ``n`` exponentials up to ``t_max``
+    using a number of ``support_points``.
+
+    The fit result will be cached if ``with_cache`` is :any:`True`.
     """
 
     max_sol = scipy.optimize.minimize(
@@ -434,6 +437,8 @@ def fit_α(
         lambda t: np.abs(α(np.array([t]))[0]) - max / 100,
         t_at_max + 0.1,
     )
+
+    assert isinstance(t_tail, float), "Could not find tail time."
 
     # norm = scipy.integrate.quad(lambda t: np.abs(α(np.array([t]))), 0, t_tail)[0]
 
@@ -448,6 +453,18 @@ def fit_α(
 
     ts = np.linspace(0, t_tail, int(support_points * 2 / 3) + 1)
     ts = np.append(ts, np.linspace(t_tail, t_max, int(support_points * 1 / 3)))
+    ys = α(ts)
+
+    data_key = hash((np.array([ts, ys]).data.tobytes(), n))
+    cache_path = Path(".cache") / "bcf_fit" / f"{data_key}.npy"
+
+    logging.info(f"Looking up bcf fit at {cache_path}.")
+
+    if with_cache and cache_path.exists():
+        logging.info(f"Loading bcf fit from {cache_path}.")
+        w, g = np.load(cache_path)
+        return w, g
+
     # ts = np.linspace(0, t_max, support_points)
 
     def residual(fit_params, x, data):
@@ -480,7 +497,7 @@ def fit_α(
         # else:
         #     fit_params.add(f"gi{i}", value=0)
 
-    out = minimize(residual, fit_params, args=(ts, α(ts)), method="least_squares")
+    out = minimize(residual, fit_params, args=(ts, ys), method="least_squares")
 
     w = np.array([out.params[f"w{i}"] for i in range(n)]) + 1j * np.array(
         [out.params[f"wi{i}"] for i in range(n)]
@@ -488,6 +505,10 @@ def fit_α(
     g = np.array([out.params[f"g{i}"] for i in range(n)]) + 1j * np.array(
         [out.params[f"gi{i}"] for i in range(n)]
     )
+
+    if with_cache:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        np.save(cache_path, (w, g))
 
     return w, g
 
