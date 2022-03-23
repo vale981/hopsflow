@@ -22,6 +22,56 @@ Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
 
 
+def ensemble_return_scale(left: float, right: EnsembleReturn) -> EnsembleReturn:
+    """Scales ``right`` by ``left``."""
+
+    single_return = False
+
+    if not isinstance(right, list):
+        single_return = True
+        right = [right]
+
+    result = [(N, left * val, np.abs(left * σ)) for N, val, σ in right]
+
+    return result[0] if single_return else result
+
+
+def ensemble_return_add(left: EnsembleReturn, right: EnsembleReturn) -> EnsembleReturn:
+    """
+    Adds the values of ``left`` and ``right``.  The standard
+    deviations are calculated correctly by adding the variances.
+    """
+
+    single_return = False
+
+    if not isinstance(left, list):
+        assert not isinstance(
+            right, list
+        ), "Both ensemble returns have to be of the same shape"
+
+        single_return = True
+        left = [left]
+        right = [right]
+
+    assert isinstance(right, list)
+
+    out = []
+
+    for left_i, right_i in zip(left, right):
+        if left_i[0] != right_i[0]:
+            raise RuntimeError("Can only add equal sample counts.")
+
+        out.append(
+            (
+                left_i[0],
+                left_i[1] + right_i[1],
+                np.sqrt(left_i[2] ** 2 + right_i[2] ** 2).real,
+            )
+        )
+
+    return out[0] if single_return else out
+
+
 class BCF:
     r"""A parameter object to hold information about a BCF.
 
@@ -216,13 +266,24 @@ def α_apprx(τ: np.ndarray, G: np.ndarray, W: np.ndarray) -> np.ndarray:
     )
 
 
-def integrate_array(arr: np.ndarray, t: np.ndarray) -> np.ndarray:
+def integrate_array(
+    arr: np.ndarray, t: np.ndarray, err: Optional[np.ndarray]
+) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
     """
     Calculates the antiderivative of the function sampled in ``arr``
-    along ``t``.
+    along ``t``.  Optionally the error ``err`` is being integrated alongside.
     """
 
-    return scipy.integrate.cumulative_trapezoid(arr, t, initial=0)
+    integral = scipy.integrate.cumulative_trapezoid(arr, t, initial=0)
+
+    if err is not None:
+        err_integral = np.sqrt(
+            scipy.integrate.cumulative_trapezoid(err**2, t, initial=0)
+        ).real
+
+        return integral, err_integral
+
+    return integral
 
 
 ###############################################################################

@@ -476,3 +476,29 @@ def interaction_energy_ensemble(
         (params, therm_args[1] if therm_args else None),
         **kwargs,
     )
+
+
+def bath_energy_from_flow(
+    τ: np.ndarray,
+    *args,
+    **kwargs,
+) -> util.EnsembleReturn:
+    """Calculates the bath energy by integrating the flow.
+    For the arguments see :any:`heat_flow_ensemble`.
+
+    :param τ: The time points of the simulations.
+    :returns: The value of the bath energy for each time step.
+    """
+
+    flow = heat_flow_ensemble(*args, **kwargs)
+    single_return = False
+
+    if not isinstance(flow, list):
+        single_return = True
+        flow = [flow]
+
+    results = []
+    for N, flow_val, σ_flow in flow:
+        results.append((N, *util.integrate_array(-flow_val, τ, σ_flow)))
+
+    return results[0] if single_return else results
