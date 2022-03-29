@@ -12,9 +12,10 @@ from . import util
 from typing import Optional, Tuple, Iterator, Union
 from stocproc import StocProc
 import itertools
+import ray
 
 ###############################################################################
-#                          Interface/Parameter Object#
+#                          Interface/Parameter Object                         #
 ###############################################################################
 
 
@@ -368,33 +369,10 @@ def interaction_energy_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.nd
 ###############################################################################
 
 
-def _heat_flow_ensemble_body(
-    ψs: tuple[np.ndarray, np.ndarray, int],
-    params: SystemParams,
-    thermal: Optional[ThermalParams],
-    only_therm: bool,
-):
-    ψ_0, ψ_1, seed = ψs
-
-    run = HOPSRun(ψ_0, ψ_1, params)
-    flow = (
-        flow_trajectory_coupling(run, params)
-        if not only_therm
-        else np.zeros(ψ_0.shape[0])
-    )
-
-    if thermal is not None:
-        therm_run = ThermalRunParams(thermal, seed)
-        flow += flow_trajectory_therm(run, therm_run)
-
-    return flow
-
-
 def heat_flow_ensemble(
     ψ_0s: Iterator[np.ndarray],
     ψ_1s: Iterator[np.ndarray],
     params: SystemParams,
-    N: Optional[int],
     therm_args: Optional[Tuple[Iterator[np.ndarray], ThermalParams]] = None,
     only_therm: bool = False,
     **kwargs,
@@ -417,39 +395,43 @@ def heat_flow_ensemble(
     if therm_args is None and only_therm:
         raise ValueError("Can't calculate only thermal part if therm_args are None.")
 
+    thermal = therm_args[1] if therm_args else None
+
+    params_ref = ray.put(params)
+    thermal_ref = ray.put(thermal)
+
+    def flow_worker(ψs: tuple[np.ndarray, np.ndarray, int]):
+        ψ_0, ψ_1, seed = ψs
+
+        params = ray.get(params_ref)
+        thermal = ray.get(thermal_ref)
+
+        run = HOPSRun(ψ_0, ψ_1, params)
+        flow = (
+            flow_trajectory_coupling(run, params)
+            if not only_therm
+            else np.zeros(ψ_0.shape[0])
+        )
+
+        if thermal is not None:
+            therm_run = ThermalRunParams(thermal, seed)
+            flow += flow_trajectory_therm(run, therm_run)
+
+        return flow
+
     return util.ensemble_mean(
         iter(zip(ψ_0s, ψ_1s, therm_args[0]))
         if therm_args
         else iter(zip(ψ_0s, ψ_1s, itertools.repeat(0))),
-        _heat_flow_ensemble_body,
-        N,
-        (params, therm_args[1] if therm_args else None, only_therm),
+        flow_worker,
         **kwargs,
     )
-
-
-def _interaction_energy_ensemble_body(
-    ψs: Tuple[np.ndarray, np.ndarray, int],
-    params: SystemParams,
-    thermal: Optional[ThermalParams],
-) -> np.ndarray:
-    ψ_0, ψ_1, seeds = ψs
-
-    run = HOPSRun(ψ_0, ψ_1, params)
-    energy = interaction_energy_coupling(run, params)
-
-    if thermal is not None:
-        therm_run = ThermalRunParams(thermal, seeds)
-        energy += interaction_energy_therm(run, therm_run)
-
-    return energy
 
 
 def interaction_energy_ensemble(
     ψ_0s: Iterator[np.ndarray],
     ψ_1s: Iterator[np.ndarray],
     params: SystemParams,
-    N: Optional[int],
     therm_args: Optional[Tuple[Iterator[int], ThermalParams]] = None,
     **kwargs,
 ) -> util.EnsembleReturn:
@@ -467,13 +449,32 @@ def interaction_energy_ensemble(
     :returns: the value of the flow for each time step
     """
 
+    thermal = therm_args[1] if therm_args else None
+
+    params_ref = ray.put(params)
+    thermal_ref = ray.put(thermal)
+
+    def interaction_energy_task(
+        ψs: Tuple[np.ndarray, np.ndarray, int],
+    ) -> np.ndarray:
+        ψ_0, ψ_1, seeds = ψs
+        params = ray.get(params_ref)
+        thermal = ray.get(thermal_ref)
+
+        run = HOPSRun(ψ_0, ψ_1, params)
+        energy = interaction_energy_coupling(run, params)
+
+        if thermal is not None:
+            therm_run = ThermalRunParams(thermal, seeds)
+            energy += interaction_energy_therm(run, therm_run)
+
+        return energy
+
     return util.ensemble_mean(
         iter(zip(ψ_0s, ψ_1s, therm_args[0]))
         if therm_args
         else iter(zip(ψ_0s, ψ_1s, itertools.repeat(0))),
-        _interaction_energy_ensemble_body,
-        N,
-        (params, therm_args[1] if therm_args else None),
+        interaction_energy_task,
         **kwargs,
     )
 

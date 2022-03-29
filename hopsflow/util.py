@@ -18,6 +18,8 @@ import json
 from functools import singledispatch, singledispatchmethod
 from scipy.stats import NumericalInverseHermite
 import copy
+import ray
+
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -344,7 +346,6 @@ def operator_expectation(
 def operator_expectation_ensemble(
     ψs: Iterator[np.ndarray],
     op: np.ndarray,
-    N: Optional[int],
     normalize: bool = False,
     real: bool = False,
     **kwargs,
@@ -362,9 +363,10 @@ def operator_expectation_ensemble(
     :returns: the expectation value
     """
 
-    return ensemble_mean(
-        ψs, sandwhich_operator, N, const_args=(op, normalize, real), **kwargs
-    )
+    def op_exp_task(ψ):
+        return sandwhich_operator(ψ, op, normalize, real)
+
+    return ensemble_mean(ψs, op_exp_task, **kwargs)
 
 
 def mulitply_hierarchy(left: np.ndarray, right: np.ndarray) -> np.ndarray:
@@ -428,29 +430,6 @@ def integrate_array(
 ###############################################################################
 #                                Ensemble Mean                                #
 ###############################################################################
-
-_ENSEMBLE_MEAN_ARGS: tuple = tuple()
-_ENSEMBLE_MEAN_KWARGS: dict = dict()
-
-
-def _ensemble_mean_call(arg) -> np.ndarray:
-    global _ENSEMBLE_MEAN_ARGS
-    global _ENSEMBLE_MEAN_KWARGS
-
-    return _ENSEMBLE_FUNC(arg, *_ENSEMBLE_MEAN_ARGS, **_ENSEMBLE_MEAN_KWARGS)
-
-
-def _ensemble_mean_init(func: Callable, args: tuple, kwargs: dict):
-    global _ENSEMBLE_FUNC
-    global _ENSEMBLE_MEAN_ARGS
-    global _ENSEMBLE_MEAN_KWARGS
-
-    _ENSEMBLE_FUNC = func
-    _ENSEMBLE_MEAN_ARGS = args
-    _ENSEMBLE_MEAN_KWARGS = kwargs
-
-
-# TODO: Use paramspec
 
 
 class WelfordAggregator:
@@ -521,24 +500,19 @@ def ensemble_mean(
     arg_iter: Iterator[Any],
     function: Callable[..., np.ndarray],
     N: Optional[int] = None,
-    const_args: tuple = tuple(),
-    const_kwargs: dict = dict(),
-    n_proc: Optional[int] = None,
     every: Optional[int] = None,
     save: Optional[str] = None,
     overwrite_cache: bool = False,
 ) -> EnsembleReturn:
 
     results = []
-    aggregate = WelfordAggregator(function(next(arg_iter), *const_args))
+    aggregate = WelfordAggregator(function(next(arg_iter)))
 
     path = None
     json_meta_info = json.dumps(
         dict(
             N=N,
             every=every,
-            const_args=const_args,
-            const_kwargs=const_kwargs,
             function_name=function.__name__,
             first_iterator_value=aggregate.mean,
         ),
@@ -563,26 +537,29 @@ def ensemble_mean(
         results = [(1, aggregate.mean, np.zeros_like(aggregate.mean))]
         return results if every else results[0]
 
-    if not n_proc:
-        n_proc = multiprocessing.cpu_count()
+    remote_function = ray.remote(function)
 
-    with multiprocessing.Pool(
-        processes=n_proc,
-        initializer=_ensemble_mean_init,
-        initargs=(function, const_args, const_kwargs),
-    ) as pool:
-        result_iter = pool.imap_unordered(
-            _ensemble_mean_call,
+    handles = [
+        remote_function.remote(arg)
+        for arg in tqdm(
             itertools.islice(arg_iter, None, N - 1 if N else None),
+            total=N - 1 if N else None,
+            desc="Loading",
         )
+    ]
 
-        for res in tqdm(result_iter, total=(N - 1) if N else None):
-            aggregate.update(res)
+    progress = tqdm(total=len(handles), desc="Processing")
 
-            if every is not None and (aggregate.n % every) == 0 or aggregate.n == N:
-                results.append(
-                    (aggregate.n, aggregate.mean.copy(), aggregate.ensemble_std.copy())
-                )
+    while len(handles):
+        done_id, handles = ray.wait(handles, fetch_local=True)
+        res = ray.get(done_id[0])
+        aggregate.update(res)
+        progress.update()
+
+        if every is not None and (aggregate.n % every) == 0 or aggregate.n == N:
+            results.append(
+                (aggregate.n, aggregate.mean.copy(), aggregate.ensemble_std.copy())
+            )
 
     if not every:
         results = results[-1]
