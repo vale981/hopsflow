@@ -14,6 +14,7 @@ scipy = "^1.7.3"
 stocproc = { git = "https://github.com/vale981/stocproc" }
 tqdm = "^4.62.3"
 lmfit = "^1.0.3"
+ray = "^1.11.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.910"
