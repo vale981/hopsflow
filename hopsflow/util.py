@@ -17,9 +17,148 @@ import logging
 import json
 from functools import singledispatch, singledispatchmethod
 from scipy.stats import NumericalInverseHermite
+import copy
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
+
+
+# class EnsembleValue:
+#     def __init__(self, value: Union[Aggregate, list[Aggregate]]):
+#         self._value = value if isinstance(value, list) else [value]
+
+#     @property
+#     def final_aggregate(self):
+#         return self._value[-1]
+
+#     @property
+#     def N(self):
+#         return self.final_aggregate[0]
+
+#     @property
+#     def value(self):
+#         return self.final_aggregate[1]
+
+#     @property
+#     def σ(self):
+#         return self.final_aggregate[2]
+
+#     @property
+#     def Ns(self):
+#         return [N for N, _, _ in self._value]
+
+#     @property
+#     def values(self):
+#         return [val for _, val, _ in self._value]
+
+#     @property
+#     def σs(self):
+#         return [σ for _, _, σ in self._value]
+
+#     @property
+#     def aggregate_iterator(self):
+#         for agg in self._value:
+#             yield agg
+
+#     def __getitem__(self, index: int):
+#         return self._value[index]
+
+#     def __len__(self) -> int:
+#         return len(self._value)
+
+#     def insert(self, value: Aggregate):
+#         where = len(self._value)
+#         for i, (N, _, _) in enumerate(self._value):
+#             if N > value[0]:
+#                 where = i
+#                 break
+
+#         self._value.insert(where, value)
+
+#     def insert_multi(self, values: list[Aggregate]):
+#         for value in values:
+#             self.insert(value)
+
+#     @singledispatchmethod
+#     def __add__(self, _):
+#         return NotImplemented
+
+#     @__add__.register
+#     def _(self, value: Aggregate):
+#         new = copy.deepcopy(self)
+#         new.insert(value)
+#         return new
+
+#     @__add__.register
+#     def _(self, value: list[Aggregate]):
+#         new = copy.deepcopy(self)
+#         new.insert_multi(value)
+#         return new
+
+#     @singledispatchmethod
+#     def __mul__(self, _):
+#         return NotImplemented
+
+#     @__mul__.register
+#     def _(self, scale: Union[float, int]):
+#         return EnsembleValue(
+#             [(N, val * scale, np.abs(σ * scale)) for N, val, σ in self._value]
+#         )
+
+#     def __subs__(self, other: "EnsembleValue") -> "EnsembleValue":
+#         return self + (other * -1)
+
+
+# @EnsembleValue.__add__.register
+# def __add__(self, other: EnsembleValue) -> EnsembleValue:
+#     if len(self) != len(other):
+#         raise RuntimeError("Can only add values of equal length.")
+
+#     left = self._value
+#     right = other._value
+
+#     out = []
+
+#     for left_i, right_i in zip(left, right):
+#         if left_i[0] != right_i[0]:
+#             raise RuntimeError("Can only add equal sample counts.")
+
+#         out.append(
+#             (
+#                 left_i[0],
+#                 left_i[1] + right_i[1],
+#                 np.sqrt(left_i[2] ** 2 + right_i[2] ** 2).real,
+#             )
+#         )
+
+#     return EnsembleValue(out)
+
+
+# @EnsembleValue.__mul__.register
+# def _(self, other: EnsembleValue) -> EnsembleValue:
+#     if len(self) != len(other):
+#         raise RuntimeError("Can only multiply values of equal length.")
+
+#     left = self._value
+#     right = other._value
+
+#     out = []
+
+#     for left_i, right_i in zip(left, right):
+#         if left_i[0] != right_i[0]:
+#             raise RuntimeError("Can only multiply equal sample counts.")
+
+#         out.append(
+#             (
+#                 left_i[0],
+#                 left_i[1] * right_i[1],
+#                 np.sqrt(
+#                     (right_i[1] * left_i[2]) ** 2 + (left_i[1] * right_i[2]) ** 2
+#                 ).real,
+#             )
+#         )
+
+#     return EnsembleValue(out)
 
 
 def ensemble_return_scale(left: float, right: EnsembleReturn) -> EnsembleReturn:
