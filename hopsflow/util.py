@@ -581,7 +581,7 @@ def ensemble_mean(
         )
 
         if not overwrite_cache and path.exists():
-            logging.warning(f"Loading cache from: {path}")
+            logging.debug(f"Loading cache from: {path}")
             return EnsembleValue(np.load(str(path), allow_pickle=True))
 
     if N == 1:
