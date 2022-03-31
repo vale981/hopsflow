@@ -1,0 +1,576 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>hopsflow.gaussflow &#8212; HOPSflow 0.0.0 documentation</title>
+    
+  <link href="../../_static/css/theme.css" rel="stylesheet">
+  <link href="../../_static/css/index.ff1ffe594081f20da1ef19478df9384b.css" rel="stylesheet">
+
+    
+  <link rel="stylesheet"
+    href="../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/blank.css" />
+    
+  <link rel="preload" as="script" href="../../_static/js/index.be7d3bbb2ef33a8344ce.js">
+
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="None">
+    
+
+    <!-- Google Analytics -->
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+
+  <div id="navbar-start">
+    
+    
+<a class="navbar-brand" href="../../index.html">
+<p class="title">HOPSflow</p>
+</a>
+
+    
+  </div>
+
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  
+  <div id="navbar-collapsible" class="col-lg-9 collapse navbar-collapse">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <ul id="navbar-main-elements" class="navbar-nav">
+    <li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../../modules/hopsflow.html">
+  HOPSflow
+ </a>
+</li>
+
+<li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../../modules/gaussflow.html">
+  GAUSSflow
+ </a>
+</li>
+
+<li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../../modules/util.html">
+  Util
+ </a>
+</li>
+
+    
+</ul>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+</div>
+    </nav>
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+            
+            <!-- Only show if we have sidebars configured, else just a small margin  -->
+            <div class="col-12 col-md-3 bd-sidebar"><form class="bd-search d-flex align-items-center" action="../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+  <div class="bd-toc-item active">
+    
+  </div>
+</nav>
+            </div>
+            
+          
+
+          
+          <div class="d-none d-xl-block col-xl-2 bd-toc">
+            
+          </div>
+          
+
+          
+          
+            
+          
+          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+              
+              <div>
+                
+  <h1>Source code for hopsflow.gaussflow</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">numpy.polynomial</span> <span class="kn">import</span> <span class="n">Polynomial</span>
+<span class="kn">from</span> <span class="nn">.util</span> <span class="kn">import</span> <span class="n">BCF</span><span class="p">,</span> <span class="n">expand_t</span>
+
+
+<div class="viewcode-block" id="SystemParams"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.SystemParams">[docs]</a><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">SystemParams</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;A parameter object to hold information about the physical</span>
+<span class="sd">    system and the global parameters for the algorithm.</span>
+
+<span class="sd">    :param Ω: the system hamiltonian energy scale, :math:`H_s =</span>
+<span class="sd">              \Omega (p^2 + q^2)`</span>
+<span class="sd">    :param η: the coupling strength (in essence a prefactor to the BCF)</span>
+<span class="sd">    :param α_0: the zero temperature BCF</span>
+
+
+<span class="sd">    :attr t_max: the maximum simulation time, will be copied from :attr:`α`</span>
+<span class="sd">    :attr W: the exponential factors in the BCF expansion</span>
+<span class="sd">    :attr G: the pre-factors in the BCF expansion</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">Ω</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">η</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">α_0</span><span class="p">:</span> <span class="n">BCF</span>
+
+    <span class="n">t_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># BCF coefficients</span>
+    <span class="n">W</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">G</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">α_0</span><span class="o">.</span><span class="n">t_max</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">α_0</span><span class="o">.</span><span class="n">exponents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">α_0</span><span class="o">.</span><span class="n">factors</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">η</span></div>
+
+
+<div class="viewcode-block" id="construct_polynomials"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.construct_polynomials">[docs]</a><span class="k">def</span> <span class="nf">construct_polynomials</span><span class="p">(</span><span class="n">sys</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Polynomial</span><span class="p">,</span> <span class="n">Polynomial</span><span class="p">]:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct the polynomials required to find the coefficients</span>
+<span class="sd">    and exponents of the solution.</span>
+
+<span class="sd">    :param sys: a parameter object with the system parameters</span>
+<span class="sd">    :returns: a list of polynomials</span>
+
+<span class="sd">        - :math:`f_0(z) = \prod_k (z-z_k) (z-z_k^{\ast})`</span>
+<span class="sd">        - :math:`p(z) = p_1(z) + \sum_n q_n(z)` where</span>
+<span class="sd">            - :math:`p_1(z) = (z^2 + \Omega^2)\prod_k (z-z_k)(z-z_k^{\ast})`</span>
+<span class="sd">            - :math:`q_n(z)=\Omega f_n(z) \prod_{k\neq n}(z-z_k) (z-z_k^{\ast})`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># we begin by calculating all the constants we&#39;ll need</span>
+    <span class="n">φ</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">G</span><span class="p">)</span>
+    <span class="n">G_abs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">G</span><span class="p">)</span>
+    <span class="n">γ</span><span class="p">,</span> <span class="n">δ</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">imag</span>
+    <span class="n">s</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">φ</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">φ</span><span class="p">)</span>
+
+    <span class="c1"># the roots of the denominator of the laplace transform of α</span>
+    <span class="n">roots_z</span> <span class="o">=</span> <span class="o">-</span><span class="n">sys</span><span class="o">.</span><span class="n">W</span>
+
+    <span class="c1"># now the polynomials</span>
+    <span class="n">f_0</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">poly_real</span><span class="p">(</span>
+        <span class="n">Polynomial</span><span class="o">.</span><span class="n">fromroots</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">roots_z</span><span class="p">,</span> <span class="n">roots_z</span><span class="o">.</span><span class="n">conj</span><span class="p">())))</span>
+    <span class="p">)</span>
+    <span class="n">p_1</span> <span class="o">=</span> <span class="n">Polynomial</span><span class="p">([</span><span class="n">sys</span><span class="o">.</span><span class="n">Ω</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">f_0</span>
+
+    <span class="n">q</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="o">-</span><span class="n">G_c</span>
+        <span class="o">*</span> <span class="n">sys</span><span class="o">.</span><span class="n">Ω</span>
+        <span class="o">*</span> <span class="n">Polynomial</span><span class="p">((</span><span class="n">δ_c</span> <span class="o">*</span> <span class="n">c_c</span> <span class="o">+</span> <span class="n">γ_c</span> <span class="o">*</span> <span class="n">s_c</span><span class="p">,</span> <span class="n">s_c</span><span class="p">))</span>
+        <span class="o">*</span> <span class="p">(</span>
+            <span class="n">util</span><span class="o">.</span><span class="n">poly_real</span><span class="p">(</span>
+                <span class="n">Polynomial</span><span class="o">.</span><span class="n">fromroots</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                        <span class="p">(</span>
+                            <span class="n">util</span><span class="o">.</span><span class="n">except_element</span><span class="p">(</span><span class="n">roots_z</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
+                            <span class="n">util</span><span class="o">.</span><span class="n">except_element</span><span class="p">(</span><span class="n">roots_z</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">roots_z</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="k">else</span> <span class="mi">1</span>  <span class="c1"># corner case</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">G_c</span><span class="p">,</span> <span class="n">γ_c</span><span class="p">,</span> <span class="n">δ_c</span><span class="p">,</span> <span class="n">s_c</span><span class="p">,</span> <span class="n">c_c</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">G_abs</span><span class="p">,</span> <span class="n">γ</span><span class="p">,</span> <span class="n">δ</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">)))</span>
+    <span class="p">]</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">p_1</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">f_0</span><span class="p">,</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="calculate_coefficients"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.calculate_coefficients">[docs]</a><span class="k">def</span> <span class="nf">calculate_coefficients</span><span class="p">(</span><span class="n">sys</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the coefficients required to construct the</span>
+<span class="sd">    propagator matrix :math:`G`.</span>
+
+<span class="sd">    :param sys: a parameter object with the system parameters</span>
+<span class="sd">    :returns: the exponents and the residuals which play a role as pre-factors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">f_0</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="n">construct_polynomials</span><span class="p">(</span><span class="n">sys</span><span class="p">)</span>
+
+    <span class="n">master_roots</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">roots</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">master_roots</span><span class="p">)</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="n">master_roots</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="sd">&quot;&quot;&quot;The roots of the polynomial are not unique.</span>
+<span class="sd">You can try to alter the number of terms in the expansion of the BCF.&quot;&quot;&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">resiquals</span> <span class="o">=</span> <span class="n">f_0</span><span class="p">(</span><span class="n">master_roots</span><span class="p">)</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">deriv</span><span class="p">()(</span><span class="n">master_roots</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">master_roots</span><span class="p">,</span> <span class="n">resiquals</span></div>
+
+
+<div class="viewcode-block" id="Propagator"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.Propagator">[docs]</a><span class="k">class</span> <span class="nc">Propagator</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;The propagator matrix :math:`G` for the system.</span>
+
+<span class="sd">    You can get inidividual matrix elements as functions of time</span>
+<span class="sd">    through indexing this object.</span>
+
+<span class="sd">    Calling it with a time argument returns the whole matrix as</span>
+<span class="sd">    array of shape ``(time, 2, 2)``.</span>
+
+<span class="sd">    :param sys: a parameter object with the system parameters</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sys</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">sys</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_roots</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_res</span> <span class="o">=</span> <span class="n">calculate_coefficients</span><span class="p">(</span><span class="n">sys</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_roots_exp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_roots</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_res_exp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_res</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Ω</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">Ω</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_res_times_roots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_res_exp</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_roots_exp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_res_times_roots_squared</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_res_times_roots</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_roots_exp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_elements</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="bp">self</span><span class="o">.</span><span class="n">el_11</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">el_12</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">el_21</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">el_22</span><span class="p">]])</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@expand_t</span>
+    <span class="k">def</span> <span class="nf">el_11</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_res_times_roots</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_roots_exp</span><span class="p">))</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@expand_t</span>
+    <span class="k">def</span> <span class="nf">el_12</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ω</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_res_exp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_roots_exp</span><span class="p">))</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@expand_t</span>
+    <span class="k">def</span> <span class="nf">el_21</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_res_times_roots_squared</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_roots_exp</span><span class="p">))</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ω</span>
+
+<div class="viewcode-block" id="Propagator.el_22"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.Propagator.el_22">[docs]</a>    <span class="k">def</span> <span class="nf">el_22</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">el_11</span><span class="p">(</span><span class="n">t</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Get an individual matrix elment as function.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_elements</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+
+    <span class="nd">@expand_t</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the propagator as array of shape ``(time, 2, 2)``.&quot;&quot;&quot;</span>
+
+        <span class="n">g_12</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_res_exp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_roots_exp</span><span class="p">)</span>
+        <span class="n">diag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_roots_exp</span> <span class="o">*</span> <span class="n">g_12</span>
+        <span class="n">g_21</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_roots_exp</span> <span class="o">*</span> <span class="n">diag</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ω</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">diag</span><span class="p">,</span> <span class="n">g_12</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Ω</span><span class="p">],</span> <span class="p">[</span><span class="n">g_21</span><span class="p">,</span> <span class="n">diag</span><span class="p">]])</span>
+            <span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Propagator.inv"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.Propagator.inv">[docs]</a>    <span class="k">def</span> <span class="nf">inv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">t</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="Flow"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.Flow">[docs]</a><span class="k">class</span> <span class="nc">Flow</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A collection of methods to calculate the time derivative</span>
+<span class="sd">    of the bath energy expectation value :math:`\frac{d}{dt}\langle H_B\rangle`</span>
+<span class="sd">    which can be retrieved as a function of time by calling this object.</span>
+
+<span class="sd">    :param system: the system parameters, see :any:`SystemParams`</span>
+<span class="sd">    :param α: the (finite temperature) BCF</span>
+<span class="sd">    :param α_0_dot: the zero temperature BCF time derivative</span>
+<span class="sd">    :param n: the excitation number of the initial state of the system :math:`|n\rangle`</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">system</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">,</span> <span class="n">α</span><span class="p">:</span> <span class="n">BCF</span><span class="p">,</span> <span class="n">α_0_dot</span><span class="p">:</span> <span class="n">BCF</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="c1">#: the BCF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">α</span> <span class="o">=</span> <span class="n">α</span>
+
+        <span class="c1">#: the zero temperature BCF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">α_0</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">α_0</span>
+
+        <span class="c1">#: the exponential factors in the BCF derivative</span>
+        <span class="c1">#: expansion :math:`\dot{\alpha}_0=\sum_k P_k e^{-L_k \cdot t}`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">α_0_dot</span><span class="o">.</span><span class="n">exponents</span>
+
+        <span class="c1">#: the pre-factors in the BCF derivative expansion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">P</span> <span class="o">=</span> <span class="n">α_0_dot</span><span class="o">.</span><span class="n">factors</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="o">*</span> <span class="n">system</span><span class="o">.</span><span class="n">η</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">calculate_coefficients</span><span class="p">(</span><span class="n">system</span><span class="p">)</span>
+
+        <span class="c1">#: the pre-factors of the exponential sum of :math:`A=G_{11}=\sum_k A_k e^{-C_k \cdot t}`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span>
+
+        <span class="c1">#: the exponents of the exponential sum of :math:`B=G_{12}=\sum_k B_k e^{-C_k \cdot t}`</span>
+        <span class="c1">#:</span>
+        <span class="c1">#:   - note the minus sign</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">C</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span>  <span class="c1"># mind the extra -</span>
+
+        <span class="c1">#: the pre-factors of the exponential sum of ``B``</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">Ω</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span>
+
+        <span class="c1">#: the exponential factors in the BCF</span>
+        <span class="c1">#: expansion :math:`\alpha=\sum_k G_k e^{-W_k \cdot t}`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">α</span><span class="o">.</span><span class="n">exponents</span>
+
+        <span class="c1">#: the pre-factors factors in the BCF expansion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="n">α</span><span class="o">.</span><span class="n">factors</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="o">*</span> <span class="n">system</span><span class="o">.</span><span class="n">η</span>
+
+        <span class="c1">#: the exponential factors in the zero temperature BCF</span>
+        <span class="c1">#: expansion :math:`\alpha=\sum_k U_k e^{-Q_k \cdot t}`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">α_0</span><span class="o">.</span><span class="n">exponents</span>
+
+        <span class="c1">#: the pre-factors factors in the zero temperature BCF expansion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">U</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">α_0</span><span class="o">.</span><span class="n">factors</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="o">*</span> <span class="n">system</span><span class="o">.</span><span class="n">η</span>
+
+        <span class="c1">#: the expectation value :math:`\langle q(0)^2\rangle`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_s_0</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n</span>
+
+        <span class="c1">#: the expectation value :math:`\langle q(0)^2\rangle`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p_s_0</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">n</span>
+
+        <span class="c1">#: the expectation value :math:`\langle q(0)p(0)\rangle`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qp_0</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span>
+
+        <span class="c1">#: the propagator matrix :math:`G(t)`, see :any:`Propagator`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prop</span> <span class="o">=</span> <span class="n">Propagator</span><span class="p">(</span><span class="n">system</span><span class="p">)</span>
+
+        <span class="c1">#: the coefficient matrix :math:`\Gamma^1`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Γ1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1">#: the coefficient matrix :math:`\Gamma^2`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Γ2</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="p">)</span>
+
+        <span class="c1">#: the coefficient matrix :math:`\Gamma^3`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Γ3</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">conj</span><span class="p">()[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="o">.</span><span class="n">conj</span><span class="p">()[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="p">)</span>
+
+        <span class="c1">#: the coefficient matrix :math:`\Gamma^A`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ΓA</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1">#: the system parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system</span> <span class="o">=</span> <span class="n">system</span>
+
+<div class="viewcode-block" id="Flow.A_conv"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.Flow.A_conv">[docs]</a>    <span class="k">def</span> <span class="nf">A_conv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The integral :math:`\int_0^t A(s)\dot{\alpha}_0(t-s)ds`.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;complex128&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">)),</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">))):</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ΓA</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="Flow.B_conv"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.Flow.B_conv">[docs]</a>    <span class="k">def</span> <span class="nf">B_conv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The integral :math:`\int_0^t B(s)\dot{\alpha}_0(t-s)ds`.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;complex128&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">)),</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">))):</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Γ1</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="Flow.flow_nontherm"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.Flow.flow_nontherm">[docs]</a>    <span class="k">def</span> <span class="nf">flow_nontherm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The part of the flow that **does not** involve :math:`\alpha`.&quot;&quot;&quot;</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">](</span><span class="n">t</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">](</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">ac</span><span class="p">,</span> <span class="n">bc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">A_conv</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">B_conv</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span>
+            <span class="o">/</span> <span class="mi">2</span>
+            <span class="o">*</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">q_s_0</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">ac</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">p_s_0</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">bc</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">qp_0</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">bc</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">qp_0</span><span class="o">.</span><span class="n">conjugate</span><span class="p">()</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">ac</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">imag</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Flow.flow_therm_zero"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.Flow.flow_therm_zero">[docs]</a>    <span class="k">def</span> <span class="nf">flow_therm_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The part of the flow that **does** involve :math:`\alpha`.&quot;&quot;&quot;</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">)),</span>
+            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">)),</span>
+            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="p">)),</span>
+            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">)),</span>
+        <span class="p">):</span>
+            <span class="n">g_1_2</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Γ1</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Γ2</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
+                <span class="o">*</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">l</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">l</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">l</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">l</span><span class="p">])</span>
+                    <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span>
+                    <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+                <span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">imag</span>
+
+            <span class="n">g_1_3</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Γ1</span><span class="p">[</span><span class="n">m</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Γ3</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>
+                <span class="o">*</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+                    <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span>
+                    <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+                    <span class="o">-</span> <span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+                        <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+                    <span class="o">+</span> <span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+                        <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">L</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+                <span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">imag</span>
+
+            <span class="n">result</span> <span class="o">+=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">g_1_2</span> <span class="o">+</span> <span class="n">g_1_3</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="Flow.flow_therm_nonzero"><a class="viewcode-back" href="../../modules/gaussflow.html#hopsflow.gaussflow.Flow.flow_therm_nonzero">[docs]</a>    <span class="k">def</span> <span class="nf">flow_therm_nonzero</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">):</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;The part of the flow that **does** involve :math:`\alpha-\alpha_0`.&quot;&quot;&quot;</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">)),</span>
+            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">)),</span>
+        <span class="p">):</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+                <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">m</span><span class="p">])</span>
+                <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">[</span><span class="n">m</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">real</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">)),</span>
+            <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="p">)),</span>
+        <span class="p">):</span>
+            <span class="n">result</span> <span class="o">-=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+                <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">m</span><span class="p">])</span>
+                <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">[</span><span class="n">m</span><span class="p">])</span> <span class="o">*</span> <span class="n">t</span><span class="p">))</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">real</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="mi">1</span>
+            <span class="o">/</span> <span class="mi">2</span>
+            <span class="o">*</span> <span class="p">(</span>
+                <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">Ω</span> <span class="o">*</span> <span class="n">result</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">prop</span><span class="o">.</span><span class="n">el_12</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">α</span><span class="o">.</span><span class="n">approx</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">α_0</span><span class="o">.</span><span class="n">approx</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+                <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">η</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">real</span></div>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">ArrayLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The flow. Time derivative of the bath energy</span>
+<span class="sd">        expectation value :math:`\frac{d}{dt}\langle H_B\rangle`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">flow_nontherm</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_therm_zero</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">flow_therm_nonzero</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+              </div>
+              
+              
+              <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+</div>
+              
+          </main>
+          
+
+      </div>
+    </div>
+  
+  <script src="../../_static/js/index.be7d3bbb2ef33a8344ce.js"></script>
+<footer class="footer mt-5 mt-md-0">
+  <div class="container">
+    
+    <div class="footer-item">
+      <p class="copyright">
+    &copy; Copyright 1980, Valentin Boettcher.<br>
+</p>
+    </div>
+    
+    <div class="footer-item">
+      <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
+</p>
+    </div>
+    
+  </div>
+</footer>
+  </body>
+</html>

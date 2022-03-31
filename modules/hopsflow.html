@@ -1,0 +1,626 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>HOPSflow &#8212; HOPSflow 0.0.0 documentation</title>
+    
+  <link href="../_static/css/theme.css" rel="stylesheet">
+  <link href="../_static/css/index.ff1ffe594081f20da1ef19478df9384b.css" rel="stylesheet">
+
+    
+  <link rel="stylesheet"
+    href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/blank.css" />
+    
+  <link rel="preload" as="script" href="../_static/js/index.be7d3bbb2ef33a8344ce.js">
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="GAUSSflow" href="gaussflow.html" />
+    <link rel="prev" title="Welcome to HOPSflow’s documentation!" href="../index.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="None">
+    
+
+    <!-- Google Analytics -->
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+
+  <div id="navbar-start">
+    
+    
+<a class="navbar-brand" href="../index.html">
+<p class="title">HOPSflow</p>
+</a>
+
+    
+  </div>
+
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  
+  <div id="navbar-collapsible" class="col-lg-9 collapse navbar-collapse">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <ul id="navbar-main-elements" class="navbar-nav">
+    <li class="toctree-l1 current active nav-item">
+ <a class="current reference internal nav-link" href="#">
+  HOPSflow
+ </a>
+</li>
+
+<li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="gaussflow.html">
+  GAUSSflow
+ </a>
+</li>
+
+<li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="util.html">
+  Util
+ </a>
+</li>
+
+    
+</ul>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+</div>
+    </nav>
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+            
+            <!-- Only show if we have sidebars configured, else just a small margin  -->
+            <div class="col-12 col-md-3 bd-sidebar"><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+  <div class="bd-toc-item active">
+    
+  </div>
+</nav>
+            </div>
+            
+          
+
+          
+          <div class="d-none d-xl-block col-xl-2 bd-toc">
+            
+              
+              <div class="toc-item">
+                
+
+<nav id="bd-toc-nav">
+    
+</nav>
+              </div>
+              
+              <div class="toc-item">
+                
+              </div>
+              
+            
+          </div>
+          
+
+          
+          
+            
+          
+          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+              
+              <div>
+                
+  <section id="module-hopsflow.hopsflow">
+<span id="hopsflow"></span><h1>HOPSflow<a class="headerlink" href="#module-hopsflow.hopsflow" title="Permalink to this headline">¶</a></h1>
+<p>Calculate the reservoir energy change from HOPS data.</p>
+<p>The functions in this module mostly take parameter objects which hold
+relevant information and compute commonly used values ahead of time.</p>
+<p>The parameter objects are passed separately but may depend on each other.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.HOPSRun">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">HOPSRun</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ψ_0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">ψ_1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><span class="pre">hopsflow.hopsflow.SystemParams</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#HOPSRun"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.HOPSRun" title="Permalink to this definition">¶</a></dt>
+<dd><p>A parameter object to hold data commonly used by the energy
+flow calculations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ψ_0</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a>) – The HOPS trajectory <code class="docutils literal notranslate"><span class="pre">(time,</span> <span class="pre">dim-state)</span></code>.</p></li>
+<li><p><strong>ψ_1</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a>) – <p>The first HOPS hierarchy states <code class="docutils literal notranslate"><span class="pre">(time,</span>
+<span class="pre">hierarchy-width</span> <span class="pre">*</span> <span class="pre">dim-state)</span></code>.</p>
+<p>It will be reshaped to a list containing arrays of the
+shape``(time, hierarchy-width, dim_state)`` (one for each
+bath).</p>
+</p></li>
+<li><p><strong>params</strong> (<a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><em>hopsflow.hopsflow.SystemParams</em></a>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.HOPSRun.nonlinear">
+<span class="sig-name descname"><span class="pre">nonlinear</span></span><a class="headerlink" href="#hopsflow.hopsflow.HOPSRun.nonlinear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.HOPSRun.norm_squared">
+<span class="sig-name descname"><span class="pre">norm_squared</span></span><a class="headerlink" href="#hopsflow.hopsflow.HOPSRun.norm_squared" title="Permalink to this definition">¶</a></dt>
+<dd><p>The squared norm of the state, may be <code class="docutils literal notranslate"><span class="pre">None</span></code> for linear HOPS.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.HOPSRun.normalize_maybe">
+<span class="sig-name descname"><span class="pre">normalize_maybe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#HOPSRun.normalize_maybe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.HOPSRun.normalize_maybe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Normalize the <code class="docutils literal notranslate"><span class="pre">array</span></code> if nonlinear HOPS is being used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>array</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a>) – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.HOPSRun.t_steps">
+<span class="sig-name descname"><span class="pre">t_steps</span></span><a class="headerlink" href="#hopsflow.hopsflow.HOPSRun.t_steps" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of timesteps.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.HOPSRun._0">
+<span id="hopsflow.hopsflow.HOPSRun.ψ_0"></span><span class="sig-name descname"><span class="pre">ψ_0</span></span><a class="headerlink" href="#hopsflow.hopsflow.HOPSRun._0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.HOPSRun._1_n">
+<span id="hopsflow.hopsflow.HOPSRun.ψ_1_n"></span><span class="sig-name descname"><span class="pre">ψ_1_n</span></span><a class="headerlink" href="#hopsflow.hopsflow.HOPSRun._1_n" title="Permalink to this definition">¶</a></dt>
+<dd><p>The first hierarchy states for each bath.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.HOPSRun._coups">
+<span id="hopsflow.hopsflow.HOPSRun.ψ_coups"></span><span class="sig-name descname"><span class="pre">ψ_coups</span></span><a class="headerlink" href="#hopsflow.hopsflow.HOPSRun._coups" title="Permalink to this definition">¶</a></dt>
+<dd><p>ψ_0 with the coupling operator applied for each bath.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.SystemParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">SystemParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">L</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">W</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bcf_scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonlinear</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fock_hops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#SystemParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.SystemParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>A parameter object to hold information about the physical
+system and global HOPS parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>L</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em>) – the coupling operators as system matrices</p></li>
+<li><p><strong>G</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em>) – the coupling factors in the exponential expansion of the BCF</p></li>
+<li><p><strong>W</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em>) – the exponents in the exponential expansion of the BCF</p></li>
+<li><p><strong>bcf_scale</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>]</em><em>]</em>) – BCF scale factors</p></li>
+<li><p><strong>nonlinear</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – whether the trajectory was obtained through the nonlinear HOPS</p></li>
+<li><p><strong>fock_hops</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – whether the now fock hops hierarchy normalization is used</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.SystemParams.G">
+<span class="sig-name descname"><span class="pre">G</span></span><a class="headerlink" href="#hopsflow.hopsflow.SystemParams.G" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.SystemParams.L">
+<span class="sig-name descname"><span class="pre">L</span></span><a class="headerlink" href="#hopsflow.hopsflow.SystemParams.L" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.SystemParams.W">
+<span class="sig-name descname"><span class="pre">W</span></span><a class="headerlink" href="#hopsflow.hopsflow.SystemParams.W" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.SystemParams.bcf_scale">
+<span class="sig-name descname"><span class="pre">bcf_scale</span></span><a class="headerlink" href="#hopsflow.hopsflow.SystemParams.bcf_scale" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.SystemParams.coupling_flow_prefactors">
+<span class="sig-name descname"><span class="pre">coupling_flow_prefactors</span></span><a class="headerlink" href="#hopsflow.hopsflow.SystemParams.coupling_flow_prefactors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.SystemParams.coupling_interaction_prefactors">
+<span class="sig-name descname"><span class="pre">coupling_interaction_prefactors</span></span><a class="headerlink" href="#hopsflow.hopsflow.SystemParams.coupling_interaction_prefactors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.SystemParams.dim">
+<span class="sig-name descname"><span class="pre">dim</span></span><a class="headerlink" href="#hopsflow.hopsflow.SystemParams.dim" title="Permalink to this definition">¶</a></dt>
+<dd><p>the dimensionality of the system</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.SystemParams.nonlinear">
+<span class="sig-name descname"><span class="pre">nonlinear</span></span><a class="headerlink" href="#hopsflow.hopsflow.SystemParams.nonlinear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">ThermalParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ξs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><span class="pre">stocproc.stocproc.StocProc</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">τ</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rand_skip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_deriv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#float" title="(in Python v3.9)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#ThermalParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.ThermalParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Aparameter object to hold information abouth the thermal
+stochastic process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ξ</strong> – the thermal stochastic processes</p></li>
+<li><p><strong>τ</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a>) – the time points of the trajectory</p></li>
+<li><p><strong>rand_skip</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – how many random numbers to skip when
+parametrizing the stochastic process</p></li>
+<li><p><strong>num_deriv</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – whether to calculate the derivative of the
+process numerically or use it directly from the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">StocProc</span></code>.  The latter alternative is strongly
+preferred if available.</p></li>
+<li><p><strong>dx</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – step size for the calculation of the derivative of ξ,
+only relevant if numerical differentiation is used</p></li>
+<li><p><strong>order</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – order the calculation of the derivative of ξ, must
+be odd, see <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.misc.derivative.html#scipy.misc.derivative" title="(in SciPy v1.8.0)"><code class="xref any docutils literal notranslate"><span class="pre">scipy.misc.derivative</span></code></a>, only relevant if
+numerical differentiation is used</p></li>
+<li><p><strong>ξs</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><em>Optional</em></a><em>[</em><em>stocproc.stocproc.StocProc</em><em>]</em><em>]</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalParams.dx">
+<span class="sig-name descname"><span class="pre">dx</span></span><a class="headerlink" href="#hopsflow.hopsflow.ThermalParams.dx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalParams.num_deriv">
+<span class="sig-name descname"><span class="pre">num_deriv</span></span><a class="headerlink" href="#hopsflow.hopsflow.ThermalParams.num_deriv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalParams.order">
+<span class="sig-name descname"><span class="pre">order</span></span><a class="headerlink" href="#hopsflow.hopsflow.ThermalParams.order" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalParams.rand_skip">
+<span class="sig-name descname"><span class="pre">rand_skip</span></span><a class="headerlink" href="#hopsflow.hopsflow.ThermalParams.rand_skip" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalParams.s">
+<span id="hopsflow.hopsflow.ThermalParams.ξs"></span><span class="sig-name descname"><span class="pre">ξs</span></span><a class="headerlink" href="#hopsflow.hopsflow.ThermalParams.s" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalParams.">
+<span id="hopsflow.hopsflow.ThermalParams.τ"></span><span class="sig-name descname"><span class="pre">τ</span></span><a class="headerlink" href="#hopsflow.hopsflow.ThermalParams." title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalRunParams">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">ThermalRunParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">therm_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><span class="pre">hopsflow.hopsflow.ThermalParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#ThermalRunParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.ThermalRunParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>A parameter object to hold information abouth the thermal
+stochastic process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>therm_params</strong> (<a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><em>hopsflow.hopsflow.ThermalParams</em></a>) – information abouth the thermal stochastic
+process</p></li>
+<li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – the seed used to generate the random numbers for the
+process realization</p></li>
+</ul>
+</dd>
+<dt class="field-even">Attr ξ_dots</dt>
+<dd class="field-even"><p>the process derivatives evaluated at τ :attr</p>
+</dd>
+<dt class="field-odd">Attr ξ_values</dt>
+<dd class="field-odd"><p>the processes evaluated at τ</p>
+</dd>
+<dt class="field-even">Attr ξ_coeff</dt>
+<dd class="field-even"><p>the coefficients of the realization of the thermal
+stochastic processes</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalRunParams._coeff">
+<span id="hopsflow.hopsflow.ThermalRunParams.ξ_coeff"></span><span class="sig-name descname"><span class="pre">ξ_coeff</span></span><a class="headerlink" href="#hopsflow.hopsflow.ThermalRunParams._coeff" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalRunParams._dots">
+<span id="hopsflow.hopsflow.ThermalRunParams.ξ_dots"></span><span class="sig-name descname"><span class="pre">ξ_dots</span></span><a class="headerlink" href="#hopsflow.hopsflow.ThermalRunParams._dots" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.ThermalRunParams._values">
+<span id="hopsflow.hopsflow.ThermalRunParams.ξ_values"></span><span class="sig-name descname"><span class="pre">ξ_values</span></span><a class="headerlink" href="#hopsflow.hopsflow.ThermalRunParams._values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.bath_energy_from_flow">
+<span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">bath_energy_from_flow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">τ</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="util.html#hopsflow.util.EnsembleValue" title="hopsflow.util.EnsembleValue"><span class="pre">hopsflow.util.EnsembleValue</span></a></span></span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#bath_energy_from_flow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.bath_energy_from_flow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the bath energy by integrating the flow.
+For the arguments see <a class="reference internal" href="#hopsflow.hopsflow.heat_flow_ensemble" title="hopsflow.hopsflow.heat_flow_ensemble"><code class="xref any py py-func docutils literal notranslate"><span class="pre">heat_flow_ensemble</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>τ</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a>) – The time points of the simulations.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The value of the bath energy for each time step.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="util.html#hopsflow.util.EnsembleValue" title="hopsflow.util.EnsembleValue">hopsflow.util.EnsembleValue</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.flow_trajectory">
+<span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">flow_trajectory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><span class="pre">hopsflow.hopsflow.HOPSRun</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><span class="pre">hopsflow.hopsflow.SystemParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">therm_run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#hopsflow.hopsflow.ThermalRunParams" title="hopsflow.hopsflow.ThermalRunParams"><span class="pre">hopsflow.hopsflow.ThermalRunParams</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#flow_trajectory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.flow_trajectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the total energy flow for a trajectory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run</strong> (<a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><em>hopsflow.hopsflow.HOPSRun</em></a>) – a parameter object, see <a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><code class="xref any py py-class docutils literal notranslate"><span class="pre">HOPSRun</span></code></a></p></li>
+<li><p><strong>therm</strong> – a parameter object, see <a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ThermalParams</span></code></a></p></li>
+<li><p><strong>params</strong> (<a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><em>hopsflow.hopsflow.SystemParams</em></a>) – a parameter object for the system, see <a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">SystemParams</span></code></a></p></li>
+<li><p><strong>therm_run</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><em>Optional</em></a><em>[</em><a class="reference internal" href="#hopsflow.hopsflow.ThermalRunParams" title="hopsflow.hopsflow.ThermalRunParams"><em>hopsflow.hopsflow.ThermalRunParams</em></a><em>]</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the value of the flow for each time step</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.flow_trajectory_coupling">
+<span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">flow_trajectory_coupling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><span class="pre">hopsflow.hopsflow.HOPSRun</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><span class="pre">hopsflow.hopsflow.SystemParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#flow_trajectory_coupling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.flow_trajectory_coupling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the <span class="math notranslate nohighlight">\(\langle L^\dagger \dot{B} + c.c.\)</span> part of the
+energy flow for a single trajectory and for each bath.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run</strong> (<a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><em>hopsflow.hopsflow.HOPSRun</em></a>) – a parameter object for the current trajectory, see <a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><code class="xref any py py-class docutils literal notranslate"><span class="pre">HOPSRun</span></code></a></p></li>
+<li><p><strong>params</strong> (<a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><em>hopsflow.hopsflow.SystemParams</em></a>) – a parameter object for the system, see <a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">SystemParams</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the value of the flow for each time step</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.flow_trajectory_therm">
+<span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">flow_trajectory_therm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><span class="pre">hopsflow.hopsflow.HOPSRun</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">therm_run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.ThermalRunParams" title="hopsflow.hopsflow.ThermalRunParams"><span class="pre">hopsflow.hopsflow.ThermalRunParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#flow_trajectory_therm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.flow_trajectory_therm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the <span class="math notranslate nohighlight">\(\langle L^\dagger \dot{\xi} + c.c.\)</span> part of the
+energy flow for a single trajectory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run</strong> (<a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><em>hopsflow.hopsflow.HOPSRun</em></a>) – a parameter object, see <a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><code class="xref any py py-class docutils literal notranslate"><span class="pre">HOPSRun</span></code></a></p></li>
+<li><p><strong>therm_run</strong> (<a class="reference internal" href="#hopsflow.hopsflow.ThermalRunParams" title="hopsflow.hopsflow.ThermalRunParams"><em>hopsflow.hopsflow.ThermalRunParams</em></a>) – a parameter object, see <a class="reference internal" href="#hopsflow.hopsflow.ThermalRunParams" title="hopsflow.hopsflow.ThermalRunParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ThermalRunParams</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the value of the flow for each time step</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.heat_flow_ensemble">
+<span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">heat_flow_ensemble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ψ_0s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ψ_1s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><span class="pre">hopsflow.hopsflow.SystemParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">therm_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Tuple" title="(in Python v3.9)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><span class="pre">hopsflow.hopsflow.ThermalParams</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_therm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#bool" title="(in Python v3.9)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="util.html#hopsflow.util.EnsembleValue" title="hopsflow.util.EnsembleValue"><span class="pre">hopsflow.util.EnsembleValue</span></a></span></span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#heat_flow_ensemble"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.heat_flow_ensemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the heat flow for an ensemble of trajectories.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ψ_0s</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><em>Iterator</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em>) – array of trajectories <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">time-steps,</span> <span class="pre">dim-state)</span></code></p></li>
+<li><p><strong>ψ_0s</strong> – array of the first HOPS hierarchy states <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">time,</span>
+<span class="pre">hierarchy-width</span> <span class="pre">*</span> <span class="pre">dim-state)</span></code></p></li>
+<li><p><strong>params</strong> (<a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><em>hopsflow.hopsflow.SystemParams</em></a>) – a parameter object for the system, see
+<a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">SystemParams</span></code></a></p></li>
+<li><p><strong>therm_args</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Tuple" title="(in Python v3.9)"><em>Tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><em>Iterator</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em><em>, </em><a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><em>hopsflow.hopsflow.ThermalParams</em></a><em>]</em><em>]</em>) – the realization parameters and the parameter
+object, see <a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ThermalParams</span></code></a></p></li>
+<li><p><strong>only_therm</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – whether to only calculate the thermal part of the flow</p></li>
+<li><p><strong>ψ_1s</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><em>Iterator</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="util.html#hopsflow.util.EnsembleValue" title="hopsflow.util.EnsembleValue">hopsflow.util.EnsembleValue</a></p>
+</dd>
+</dl>
+<p>The rest of the <code class="docutils literal notranslate"><span class="pre">kwargs</span></code> is passed on to <a class="reference internal" href="util.html#hopsflow.util.ensemble_mean" title="hopsflow.util.ensemble_mean"><code class="xref any py py-func docutils literal notranslate"><span class="pre">util.ensemble_mean</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the value of the flow for each time step</p>
+</dd>
+<dt class="field-even">Parameters</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ψ_0s</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><em>Iterator</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em>) – </p></li>
+<li><p><strong>ψ_1s</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><em>Iterator</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em>) – </p></li>
+<li><p><strong>params</strong> (<a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><em>hopsflow.hopsflow.SystemParams</em></a>) – </p></li>
+<li><p><strong>therm_args</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Tuple" title="(in Python v3.9)"><em>Tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><em>Iterator</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em><em>, </em><a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><em>hopsflow.hopsflow.ThermalParams</em></a><em>]</em><em>]</em>) – </p></li>
+<li><p><strong>only_therm</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – </p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="util.html#hopsflow.util.EnsembleValue" title="hopsflow.util.EnsembleValue">hopsflow.util.EnsembleValue</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.interaction_energy_coupling">
+<span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">interaction_energy_coupling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><span class="pre">hopsflow.hopsflow.HOPSRun</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><span class="pre">hopsflow.hopsflow.SystemParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#interaction_energy_coupling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.interaction_energy_coupling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the coupling part of the interaction energy
+expectation value for a trajectory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run</strong> (<a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><em>hopsflow.hopsflow.HOPSRun</em></a>) – a parameter object for the current trajectory, see <a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><code class="xref any py py-class docutils literal notranslate"><span class="pre">HOPSRun</span></code></a></p></li>
+<li><p><strong>params</strong> (<a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><em>hopsflow.hopsflow.SystemParams</em></a>) – a parameter object for the system, see <a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">SystemParams</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the value of the interaction energy for each time step</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.interaction_energy_ensemble">
+<span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">interaction_energy_ensemble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ψ_0s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ψ_1s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><span class="pre">hopsflow.hopsflow.SystemParams</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">therm_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Tuple" title="(in Python v3.9)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#int" title="(in Python v3.9)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><span class="pre">hopsflow.hopsflow.ThermalParams</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="util.html#hopsflow.util.EnsembleValue" title="hopsflow.util.EnsembleValue"><span class="pre">hopsflow.util.EnsembleValue</span></a></span></span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#interaction_energy_ensemble"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.interaction_energy_ensemble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the heat flow for an ensemble of trajectories.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ψ_0s</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><em>Iterator</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em>) – array of trajectories <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">time-steps,</span> <span class="pre">dim-state)</span></code></p></li>
+<li><p><strong>ψ_0s</strong> – array of the first HOPS hierarchy states <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">time,</span>
+<span class="pre">hierarchy-width</span> <span class="pre">*</span> <span class="pre">dim-state)</span></code></p></li>
+<li><p><strong>params</strong> (<a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><em>hopsflow.hopsflow.SystemParams</em></a>) – a parameter object for the system, see
+<a class="reference internal" href="#hopsflow.hopsflow.SystemParams" title="hopsflow.hopsflow.SystemParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">SystemParams</span></code></a></p></li>
+<li><p><strong>therm_args</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Optional" title="(in Python v3.9)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Tuple" title="(in Python v3.9)"><em>Tuple</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><em>Iterator</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3.9/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>]</em><em>, </em><a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><em>hopsflow.hopsflow.ThermalParams</em></a><em>]</em><em>]</em>) – the realization parameters and the parameter
+object, see <a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ThermalParams</span></code></a></p></li>
+<li><p><strong>ψ_1s</strong> (<a class="reference external" href="https://docs.python.org/3.9/library/typing.html#typing.Iterator" title="(in Python v3.9)"><em>Iterator</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>]</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="util.html#hopsflow.util.EnsembleValue" title="hopsflow.util.EnsembleValue">hopsflow.util.EnsembleValue</a></p>
+</dd>
+</dl>
+<p>The <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> are passed to <code class="xref any docutils literal notranslate"><span class="pre">hopsflow.utility.ensemble_mean</span></code>.
+:returns: the value of the flow for each time step</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="hopsflow.hopsflow.interaction_energy_therm">
+<span class="sig-prename descclassname"><span class="pre">hopsflow.hopsflow.</span></span><span class="sig-name descname"><span class="pre">interaction_energy_therm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><span class="pre">hopsflow.hopsflow.HOPSRun</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">therm_run</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hopsflow.hopsflow.ThermalRunParams" title="hopsflow.hopsflow.ThermalRunParams"><span class="pre">hopsflow.hopsflow.ThermalRunParams</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><span class="pre">numpy.ndarray</span></a></span></span><a class="reference internal" href="../_modules/hopsflow/hopsflow.html#interaction_energy_therm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hopsflow.hopsflow.interaction_energy_therm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the thermal part of the interaction energy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>run</strong> (<a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><em>hopsflow.hopsflow.HOPSRun</em></a>) – a parameter object, see <a class="reference internal" href="#hopsflow.hopsflow.HOPSRun" title="hopsflow.hopsflow.HOPSRun"><code class="xref any py py-class docutils literal notranslate"><span class="pre">HOPSRun</span></code></a></p></li>
+<li><p><strong>therm_run</strong> (<a class="reference internal" href="#hopsflow.hopsflow.ThermalRunParams" title="hopsflow.hopsflow.ThermalRunParams"><em>hopsflow.hopsflow.ThermalRunParams</em></a>) – a parameter object, see <a class="reference internal" href="#hopsflow.hopsflow.ThermalParams" title="hopsflow.hopsflow.ThermalParams"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ThermalParams</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the value of the thermal interaction for each time step</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+              </div>
+              
+              
+              <!-- Previous / next buttons -->
+<div class='prev-next-area'> 
+    <a class='left-prev' id="prev-link" href="../index.html" title="previous page">
+        <i class="fas fa-angle-left"></i>
+        <div class="prev-next-info">
+            <p class="prev-next-subtitle">previous</p>
+            <p class="prev-next-title">Welcome to HOPSflow’s documentation!</p>
+        </div>
+    </a>
+    <a class='right-next' id="next-link" href="gaussflow.html" title="next page">
+    <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">GAUSSflow</p>
+    </div>
+    <i class="fas fa-angle-right"></i>
+    </a>
+</div>
+              
+          </main>
+          
+
+      </div>
+    </div>
+  
+  <script src="../_static/js/index.be7d3bbb2ef33a8344ce.js"></script>
+<footer class="footer mt-5 mt-md-0">
+  <div class="container">
+    
+    <div class="footer-item">
+      <p class="copyright">
+    &copy; Copyright 1980, Valentin Boettcher.<br>
+</p>
+    </div>
+    
+    <div class="footer-item">
+      <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
+</p>
+    </div>
+    
+  </div>
+</footer>
+  </body>
+</html>

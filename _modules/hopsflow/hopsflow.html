@@ -1,0 +1,673 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>hopsflow.hopsflow &#8212; HOPSflow 0.0.0 documentation</title>
+    
+  <link href="../../_static/css/theme.css" rel="stylesheet">
+  <link href="../../_static/css/index.ff1ffe594081f20da1ef19478df9384b.css" rel="stylesheet">
+
+    
+  <link rel="stylesheet"
+    href="../../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/css/blank.css" />
+    
+  <link rel="preload" as="script" href="../../_static/js/index.be7d3bbb2ef33a8344ce.js">
+
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="None">
+    
+
+    <!-- Google Analytics -->
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+    <nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main"><div class="container-xl">
+
+  <div id="navbar-start">
+    
+    
+<a class="navbar-brand" href="../../index.html">
+<p class="title">HOPSflow</p>
+</a>
+
+    
+  </div>
+
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-collapsible" aria-controls="navbar-collapsible" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  
+  <div id="navbar-collapsible" class="col-lg-9 collapse navbar-collapse">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <ul id="navbar-main-elements" class="navbar-nav">
+    <li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../../modules/hopsflow.html">
+  HOPSflow
+ </a>
+</li>
+
+<li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../../modules/gaussflow.html">
+  GAUSSflow
+ </a>
+</li>
+
+<li class="toctree-l1 nav-item">
+ <a class="reference internal nav-link" href="../../modules/util.html">
+  Util
+ </a>
+</li>
+
+    
+</ul>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+</div>
+    </nav>
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+            
+            <!-- Only show if we have sidebars configured, else just a small margin  -->
+            <div class="col-12 col-md-3 bd-sidebar"><form class="bd-search d-flex align-items-center" action="../../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+  <div class="bd-toc-item active">
+    
+  </div>
+</nav>
+            </div>
+            
+          
+
+          
+          <div class="d-none d-xl-block col-xl-2 bd-toc">
+            
+          </div>
+          
+
+          
+          
+            
+          
+          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+              
+              <div>
+                
+  <h1>Source code for hopsflow.hopsflow</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Calculate the reservoir energy change from HOPS data.</span>
+
+<span class="sd">The functions in this module mostly take parameter objects which hold</span>
+<span class="sd">relevant information and compute commonly used values ahead of time.</span>
+
+<span class="sd">The parameter objects are passed separately but may depend on each other.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.misc</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">util</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">stocproc</span> <span class="kn">import</span> <span class="n">StocProc</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">ray</span>
+
+<span class="c1">###############################################################################</span>
+<span class="c1">#                          Interface/Parameter Object                         #</span>
+<span class="c1">###############################################################################</span>
+
+
+<div class="viewcode-block" id="SystemParams"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.SystemParams">[docs]</a><span class="k">class</span> <span class="nc">SystemParams</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A parameter object to hold information about the physical</span>
+<span class="sd">    system and global HOPS parameters.</span>
+
+<span class="sd">    :param L: the coupling operators as system matrices</span>
+<span class="sd">    :param G: the coupling factors in the exponential expansion of the BCF</span>
+<span class="sd">    :param W: the exponents in the exponential expansion of the BCF</span>
+<span class="sd">    :param bcf_scale: BCF scale factors</span>
+<span class="sd">    :param nonlinear: whether the trajectory was obtained through the nonlinear HOPS</span>
+<span class="sd">    :param fock_hops: whether the now fock hops hierarchy normalization is used</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;L&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;G&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;W&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;bcf_scale&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;nonlinear&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;coupling_interaction_prefactors&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;coupling_flow_prefactors&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dim&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">L</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+        <span class="n">G</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+        <span class="n">W</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+        <span class="n">bcf_scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">nonlinear</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">fock_hops</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Class initializer. Computes the most useful attributes</span>
+<span class="sd">        ahead of time.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">L</span> <span class="o">=</span> <span class="n">L</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="o">*</span> <span class="n">scale</span> <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">scale</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">bcf_scale</span><span class="p">)]</span> <span class="k">if</span> <span class="n">bcf_scale</span> <span class="k">else</span> <span class="n">G</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">W</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_interaction_prefactors</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="k">if</span> <span class="n">fock_hops</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">G</span><span class="p">)</span> <span class="k">for</span> <span class="n">G</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span>
+        <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_flow_prefactors</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">fac</span> <span class="o">*</span> <span class="o">-</span><span class="n">W</span> <span class="k">for</span> <span class="n">fac</span><span class="p">,</span> <span class="n">W</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_interaction_prefactors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">W</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonlinear</span> <span class="o">=</span> <span class="n">nonlinear</span>
+
+        <span class="c1">#: the dimensionality of the system</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="HOPSRun"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.HOPSRun">[docs]</a><span class="k">class</span> <span class="nc">HOPSRun</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A parameter object to hold data commonly used by the energy</span>
+<span class="sd">    flow calculations.</span>
+
+<span class="sd">    :param ψ_0: The HOPS trajectory ``(time, dim-state)``.</span>
+<span class="sd">    :param ψ_1: The first HOPS hierarchy states ``(time,</span>
+<span class="sd">        hierarchy-width * dim-state)``.</span>
+
+<span class="sd">        It will be reshaped to a list containing arrays of the</span>
+<span class="sd">        shape``(time, hierarchy-width, dim_state)`` (one for each</span>
+<span class="sd">        bath).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;ψ_0&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ψ_1_n&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;norm_squared&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ψ_coups&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;t_steps&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;nonlinear&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ψ_0</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ψ_1</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Class initializer. Computes the most useful attributes</span>
+<span class="sd">        ahead of time.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ψ_0</span> <span class="o">=</span> <span class="n">ψ_0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonlinear</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">nonlinear</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_squared</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ψ_0</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">ψ_0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+            <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">nonlinear</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The squared norm of the state, may be ``None`` for linear HOPS.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ψ_coups</span> <span class="o">=</span> <span class="p">[</span><span class="n">util</span><span class="o">.</span><span class="n">apply_operator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ψ_0</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="k">for</span> <span class="n">L</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">L</span><span class="p">]</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ψ_0 with the coupling operator applied for each bath.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">t_steps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ψ_0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="sd">&quot;&quot;&quot;The number of timesteps.&quot;&quot;&quot;</span>
+
+        <span class="n">hierarchy_width</span> <span class="o">=</span> <span class="n">ψ_1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">params</span><span class="o">.</span><span class="n">dim</span>
+        <span class="n">ψ_1_rs</span> <span class="o">=</span> <span class="n">ψ_1</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_steps</span><span class="p">,</span> <span class="n">hierarchy_width</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+
+        <span class="n">offsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">G</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ψ_1_n</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">ψ_1_rs</span><span class="p">[:,</span> <span class="n">offsets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">offsets</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="p">:]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">offsets</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="sd">&quot;&quot;&quot;The first hierarchy states for each bath.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="HOPSRun.normalize_maybe"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.HOPSRun.normalize_maybe">[docs]</a>    <span class="k">def</span> <span class="nf">normalize_maybe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Normalize the ``array`` if nonlinear HOPS is being used.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonlinear</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">array</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_squared</span>
+
+        <span class="k">return</span> <span class="n">array</span></div></div>
+
+
+<div class="viewcode-block" id="ThermalParams"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.ThermalParams">[docs]</a><span class="k">class</span> <span class="nc">ThermalParams</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Aparameter object to hold information abouth the thermal</span>
+<span class="sd">    stochastic process.</span>
+
+<span class="sd">    :param ξ: the thermal stochastic processes</span>
+<span class="sd">    :param τ: the time points of the trajectory</span>
+<span class="sd">    :param rand_skip: how many random numbers to skip when</span>
+<span class="sd">        parametrizing the stochastic process</span>
+<span class="sd">    :param num_deriv: whether to calculate the derivative of the</span>
+<span class="sd">        process numerically or use it directly from the</span>
+<span class="sd">        :class:`StocProc`.  The latter alternative is strongly</span>
+<span class="sd">        preferred if available.</span>
+<span class="sd">    :param dx: step size for the calculation of the derivative of ξ,</span>
+<span class="sd">        only relevant if numerical differentiation is used</span>
+<span class="sd">    :param order: order the calculation of the derivative of ξ, must</span>
+<span class="sd">        be odd, see :any:`scipy.misc.derivative`, only relevant if</span>
+<span class="sd">        numerical differentiation is used</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ξs&quot;</span><span class="p">,</span> <span class="s2">&quot;τ&quot;</span><span class="p">,</span> <span class="s2">&quot;dx&quot;</span><span class="p">,</span> <span class="s2">&quot;order&quot;</span><span class="p">,</span> <span class="s2">&quot;num_deriv&quot;</span><span class="p">,</span> <span class="s2">&quot;rand_skip&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ξs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">StocProc</span><span class="p">]],</span>
+        <span class="n">τ</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">rand_skip</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">num_deriv</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">dx</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ξs</span> <span class="o">=</span> <span class="n">ξs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">τ</span> <span class="o">=</span> <span class="n">τ</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dx</span> <span class="o">=</span> <span class="n">dx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="o">=</span> <span class="n">order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_deriv</span> <span class="o">=</span> <span class="n">num_deriv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rand_skip</span> <span class="o">=</span> <span class="n">rand_skip</span></div>
+
+
+<div class="viewcode-block" id="ThermalRunParams"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.ThermalRunParams">[docs]</a><span class="k">class</span> <span class="nc">ThermalRunParams</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A parameter object to hold information abouth the thermal</span>
+<span class="sd">    stochastic process.</span>
+
+<span class="sd">    :param therm_params: information abouth the thermal stochastic</span>
+<span class="sd">        process</span>
+
+<span class="sd">    :param seed: the seed used to generate the random numbers for the</span>
+<span class="sd">        process realization</span>
+
+<span class="sd">    :attr ξ_dots: the process derivatives evaluated at τ :attr</span>
+
+<span class="sd">    :attr ξ_values: the processes evaluated at τ</span>
+
+<span class="sd">    :attr ξ_coeff: the coefficients of the realization of the thermal</span>
+<span class="sd">        stochastic processes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ξ_coeff&quot;</span><span class="p">,</span> <span class="s2">&quot;ξ_dots&quot;</span><span class="p">,</span> <span class="s2">&quot;ξ_values&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">therm_params</span><span class="p">:</span> <span class="n">ThermalParams</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Class initializer.  Computes the most useful attributes</span>
+<span class="sd">        ahead of time.</span>
+
+<span class="sd">        The processes ξs are intialized with ξ_coeff and their</span>
+<span class="sd">        derivative is being calculated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">therm_params</span><span class="o">.</span><span class="n">rand_skip</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ξ_coeff</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ξ_values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ξ_dots</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">ξ</span> <span class="ow">in</span> <span class="n">therm_params</span><span class="o">.</span><span class="n">ξs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ξ</span><span class="p">:</span>
+                <span class="n">coeff</span> <span class="o">=</span> <span class="n">util</span><span class="o">.</span><span class="n">uni_to_gauss</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">((</span><span class="n">ξ</span><span class="o">.</span><span class="n">get_num_y</span><span class="p">()</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ξ_coeff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coeff</span><span class="p">)</span>
+                <span class="n">ξ</span><span class="o">.</span><span class="n">new_process</span><span class="p">(</span><span class="n">coeff</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ξ_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ξ</span><span class="p">(</span><span class="n">therm_params</span><span class="o">.</span><span class="n">τ</span><span class="p">))</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">ξ_dots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">scipy</span><span class="o">.</span><span class="n">misc</span><span class="o">.</span><span class="n">derivative</span><span class="p">(</span>
+                        <span class="n">ξ</span><span class="p">,</span>
+                        <span class="n">therm_params</span><span class="o">.</span><span class="n">τ</span><span class="p">,</span>
+                        <span class="n">dx</span><span class="o">=</span><span class="n">therm_params</span><span class="o">.</span><span class="n">dx</span><span class="p">,</span>
+                        <span class="n">order</span><span class="o">=</span><span class="n">therm_params</span><span class="o">.</span><span class="n">order</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">therm_params</span><span class="o">.</span><span class="n">num_deriv</span>
+                    <span class="k">else</span> <span class="n">ξ</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">therm_params</span><span class="o">.</span><span class="n">τ</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ξ_coeff</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ξ_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ξ_dots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span></div>
+
+
+<span class="c1">###############################################################################</span>
+<span class="c1">#                              Single Trajectory                              #</span>
+<span class="c1">###############################################################################</span>
+
+
+<div class="viewcode-block" id="flow_trajectory_coupling"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.flow_trajectory_coupling">[docs]</a><span class="k">def</span> <span class="nf">flow_trajectory_coupling</span><span class="p">(</span>
+    <span class="n">run</span><span class="p">:</span> <span class="n">HOPSRun</span><span class="p">,</span>
+    <span class="n">params</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates the :math:`\langle L^\dagger \dot{B} + c.c.` part of the</span>
+<span class="sd">    energy flow for a single trajectory and for each bath.</span>
+
+<span class="sd">    :param run: a parameter object for the current trajectory, see :any:`HOPSRun`</span>
+<span class="sd">    :param params: a parameter object for the system, see :any:`SystemParams`</span>
+
+<span class="sd">    :returns: the value of the flow for each time step</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># here we apply the prefactors to each hierarchy state</span>
+    <span class="n">ψ_hopses</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">util</span><span class="o">.</span><span class="n">mulitply_hierarchy</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ψ_1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">ψ_1</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">coupling_flow_prefactors</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">ψ_1_n</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">flows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">util</span><span class="o">.</span><span class="n">dot_with_hierarchy</span><span class="p">(</span><span class="n">ψ_coup</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">ψ_hops</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+            <span class="k">for</span> <span class="n">ψ_coup</span><span class="p">,</span> <span class="n">ψ_hops</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">ψ_coups</span><span class="p">,</span> <span class="n">ψ_hopses</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>  <span class="c1"># fromiter crashed...</span>
+
+    <span class="c1"># optionally normalize</span>
+    <span class="k">return</span> <span class="n">run</span><span class="o">.</span><span class="n">normalize_maybe</span><span class="p">(</span><span class="n">flows</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="flow_trajectory_therm"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.flow_trajectory_therm">[docs]</a><span class="k">def</span> <span class="nf">flow_trajectory_therm</span><span class="p">(</span><span class="n">run</span><span class="p">:</span> <span class="n">HOPSRun</span><span class="p">,</span> <span class="n">therm_run</span><span class="p">:</span> <span class="n">ThermalRunParams</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates the :math:`\langle L^\dagger \dot{\xi} + c.c.` part of the</span>
+<span class="sd">    energy flow for a single trajectory.</span>
+
+<span class="sd">    :param run: a parameter object, see :any:`HOPSRun`</span>
+<span class="sd">    :param therm_run: a parameter object, see :any:`ThermalRunParams`</span>
+<span class="sd">    :returns: the value of the flow for each time step</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">flows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="mi">2</span>
+            <span class="o">*</span> <span class="p">(</span>
+                <span class="n">run</span><span class="o">.</span><span class="n">normalize_maybe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ψ_coup</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">run</span><span class="o">.</span><span class="n">ψ_0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">ξ_dot</span>
+                <span class="k">if</span> <span class="n">ξ_dot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="n">ψ_coup</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">)</span>  <span class="c1"># note: this is already scaled by stocproc</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">real</span>
+            <span class="k">for</span> <span class="n">ψ_coup</span><span class="p">,</span> <span class="n">ξ_dot</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">ψ_coups</span><span class="p">,</span> <span class="n">therm_run</span><span class="o">.</span><span class="n">ξ_dots</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">flows</span></div>
+
+
+<div class="viewcode-block" id="flow_trajectory"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.flow_trajectory">[docs]</a><span class="k">def</span> <span class="nf">flow_trajectory</span><span class="p">(</span>
+    <span class="n">run</span><span class="p">:</span> <span class="n">HOPSRun</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">,</span> <span class="n">therm_run</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ThermalRunParams</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates the total energy flow for a trajectory.</span>
+
+<span class="sd">    :param run: a parameter object, see :any:`HOPSRun`</span>
+<span class="sd">    :param therm: a parameter object, see :any:`ThermalParams`</span>
+<span class="sd">    :param params: a parameter object for the system, see :any:`SystemParams`</span>
+<span class="sd">    :returns: the value of the flow for each time step</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">flow</span> <span class="o">=</span> <span class="n">flow_trajectory_coupling</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">therm_run</span><span class="p">:</span>
+        <span class="n">flow</span> <span class="o">+=</span> <span class="n">flow_trajectory_therm</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">therm_run</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">flow</span></div>
+
+
+<div class="viewcode-block" id="interaction_energy_coupling"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.interaction_energy_coupling">[docs]</a><span class="k">def</span> <span class="nf">interaction_energy_coupling</span><span class="p">(</span>
+    <span class="n">run</span><span class="p">:</span> <span class="n">HOPSRun</span><span class="p">,</span>
+    <span class="n">params</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates the coupling part of the interaction energy</span>
+<span class="sd">    expectation value for a trajectory.</span>
+
+<span class="sd">    :param run: a parameter object for the current trajectory, see :any:`HOPSRun`</span>
+<span class="sd">    :param params: a parameter object for the system, see :any:`SystemParams`</span>
+
+<span class="sd">    :returns: the value of the interaction energy for each time step</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># here we apply the prefactors to each hierarchy state</span>
+    <span class="n">ψ_hopses</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">util</span><span class="o">.</span><span class="n">mulitply_hierarchy</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">ψ_1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">ψ_1</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">coupling_interaction_prefactors</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">ψ_1_n</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">flows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">util</span><span class="o">.</span><span class="n">dot_with_hierarchy</span><span class="p">(</span><span class="n">ψ_coup</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">ψ_hops</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+            <span class="k">for</span> <span class="n">ψ_coup</span><span class="p">,</span> <span class="n">ψ_hops</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">ψ_coups</span><span class="p">,</span> <span class="n">ψ_hopses</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>  <span class="c1"># fromiter crashed...</span>
+
+    <span class="c1"># optionally normalize</span>
+    <span class="k">return</span> <span class="n">run</span><span class="o">.</span><span class="n">normalize_maybe</span><span class="p">(</span><span class="n">flows</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="interaction_energy_therm"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.interaction_energy_therm">[docs]</a><span class="k">def</span> <span class="nf">interaction_energy_therm</span><span class="p">(</span><span class="n">run</span><span class="p">:</span> <span class="n">HOPSRun</span><span class="p">,</span> <span class="n">therm_run</span><span class="p">:</span> <span class="n">ThermalRunParams</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates the thermal part of the interaction energy.</span>
+
+<span class="sd">    :param run: a parameter object, see :any:`HOPSRun`</span>
+<span class="sd">    :param therm_run: a parameter object, see :any:`ThermalParams`</span>
+<span class="sd">    :returns: the value of the thermal interaction for each time step</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">energies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="mi">2</span>
+            <span class="o">*</span> <span class="p">(</span>
+                <span class="n">run</span><span class="o">.</span><span class="n">normalize_maybe</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ψ_coup</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span> <span class="o">*</span> <span class="n">run</span><span class="o">.</span><span class="n">ψ_0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">ξ</span>
+                <span class="k">if</span> <span class="n">ξ</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="n">ψ_coup</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">)</span>  <span class="c1"># note: this is already scaled by stocproc</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">real</span>
+            <span class="k">for</span> <span class="n">ψ_coup</span><span class="p">,</span> <span class="n">ξ</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">ψ_coups</span><span class="p">,</span> <span class="n">therm_run</span><span class="o">.</span><span class="n">ξ_values</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">energies</span></div>
+
+
+<span class="c1">###############################################################################</span>
+<span class="c1">#                                   Ensemble                                  #</span>
+<span class="c1">###############################################################################</span>
+
+
+<div class="viewcode-block" id="heat_flow_ensemble"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.heat_flow_ensemble">[docs]</a><span class="k">def</span> <span class="nf">heat_flow_ensemble</span><span class="p">(</span>
+    <span class="n">ψ_0s</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+    <span class="n">ψ_1s</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+    <span class="n">params</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">,</span>
+    <span class="n">therm_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Iterator</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">ThermalParams</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">only_therm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">util</span><span class="o">.</span><span class="n">EnsembleValue</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Calculates the heat flow for an ensemble of trajectories.</span>
+
+<span class="sd">    :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``</span>
+<span class="sd">    :param ψ_0s: array of the first HOPS hierarchy states ``(N, time,</span>
+<span class="sd">        hierarchy-width * dim-state)``</span>
+<span class="sd">    :param params: a parameter object for the system, see</span>
+<span class="sd">        :any:`SystemParams`</span>
+<span class="sd">    :param therm_args: the realization parameters and the parameter</span>
+<span class="sd">        object, see :any:`ThermalParams`</span>
+<span class="sd">    :param only_therm: whether to only calculate the thermal part of the flow</span>
+
+<span class="sd">    The rest of the ``kwargs`` is passed on to :any:`util.ensemble_mean`.</span>
+
+<span class="sd">    :returns: the value of the flow for each time step</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">therm_args</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">only_therm</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t calculate only thermal part if therm_args are None.&quot;</span><span class="p">)</span>
+
+    <span class="n">thermal</span> <span class="o">=</span> <span class="n">therm_args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">therm_args</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">params_ref</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">thermal_ref</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">thermal</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">flow_worker</span><span class="p">(</span><span class="n">ψs</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">]):</span>
+        <span class="n">ψ_0</span><span class="p">,</span> <span class="n">ψ_1</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">ψs</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">params_ref</span><span class="p">)</span>
+        <span class="n">thermal</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">thermal_ref</span><span class="p">)</span>
+
+        <span class="n">run</span> <span class="o">=</span> <span class="n">HOPSRun</span><span class="p">(</span><span class="n">ψ_0</span><span class="p">,</span> <span class="n">ψ_1</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+        <span class="n">flow</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">flow_trajectory_coupling</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">only_therm</span>
+            <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ψ_0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">thermal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">therm_run</span> <span class="o">=</span> <span class="n">ThermalRunParams</span><span class="p">(</span><span class="n">thermal</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+            <span class="n">flow</span> <span class="o">+=</span> <span class="n">flow_trajectory_therm</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">therm_run</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">flow</span>
+
+    <span class="k">return</span> <span class="n">util</span><span class="o">.</span><span class="n">ensemble_mean</span><span class="p">(</span>
+        <span class="nb">iter</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ψ_0s</span><span class="p">,</span> <span class="n">ψ_1s</span><span class="p">,</span> <span class="n">therm_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">therm_args</span>
+        <span class="k">else</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ψ_0s</span><span class="p">,</span> <span class="n">ψ_1s</span><span class="p">,</span> <span class="n">itertools</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">0</span><span class="p">))),</span>
+        <span class="n">flow_worker</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="interaction_energy_ensemble"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.interaction_energy_ensemble">[docs]</a><span class="k">def</span> <span class="nf">interaction_energy_ensemble</span><span class="p">(</span>
+    <span class="n">ψ_0s</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+    <span class="n">ψ_1s</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+    <span class="n">params</span><span class="p">:</span> <span class="n">SystemParams</span><span class="p">,</span>
+    <span class="n">therm_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Iterator</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">ThermalParams</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">util</span><span class="o">.</span><span class="n">EnsembleValue</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Calculates the heat flow for an ensemble of trajectories.</span>
+
+<span class="sd">    :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``</span>
+<span class="sd">    :param ψ_0s: array of the first HOPS hierarchy states ``(N, time,</span>
+<span class="sd">        hierarchy-width * dim-state)``</span>
+<span class="sd">    :param params: a parameter object for the system, see</span>
+<span class="sd">        :any:`SystemParams`</span>
+<span class="sd">    :param therm_args: the realization parameters and the parameter</span>
+<span class="sd">        object, see :any:`ThermalParams`</span>
+
+<span class="sd">    The ``**kwargs`` are passed to :any:`hopsflow.utility.ensemble_mean`.</span>
+<span class="sd">    :returns: the value of the flow for each time step</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">thermal</span> <span class="o">=</span> <span class="n">therm_args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">therm_args</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">params_ref</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">thermal_ref</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">thermal</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">interaction_energy_task</span><span class="p">(</span>
+        <span class="n">ψs</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">ψ_0</span><span class="p">,</span> <span class="n">ψ_1</span><span class="p">,</span> <span class="n">seeds</span> <span class="o">=</span> <span class="n">ψs</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">params_ref</span><span class="p">)</span>
+        <span class="n">thermal</span> <span class="o">=</span> <span class="n">ray</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">thermal_ref</span><span class="p">)</span>
+
+        <span class="n">run</span> <span class="o">=</span> <span class="n">HOPSRun</span><span class="p">(</span><span class="n">ψ_0</span><span class="p">,</span> <span class="n">ψ_1</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="n">interaction_energy_coupling</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+
+        <span class="k">if</span> <span class="n">thermal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">therm_run</span> <span class="o">=</span> <span class="n">ThermalRunParams</span><span class="p">(</span><span class="n">thermal</span><span class="p">,</span> <span class="n">seeds</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+            <span class="n">energy</span> <span class="o">+=</span> <span class="n">interaction_energy_therm</span><span class="p">(</span><span class="n">run</span><span class="p">,</span> <span class="n">therm_run</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">energy</span>
+
+    <span class="k">return</span> <span class="n">util</span><span class="o">.</span><span class="n">ensemble_mean</span><span class="p">(</span>
+        <span class="nb">iter</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ψ_0s</span><span class="p">,</span> <span class="n">ψ_1s</span><span class="p">,</span> <span class="n">therm_args</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">therm_args</span>
+        <span class="k">else</span> <span class="nb">iter</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">ψ_0s</span><span class="p">,</span> <span class="n">ψ_1s</span><span class="p">,</span> <span class="n">itertools</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">0</span><span class="p">))),</span>
+        <span class="n">interaction_energy_task</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="bath_energy_from_flow"><a class="viewcode-back" href="../../modules/hopsflow.html#hopsflow.hopsflow.bath_energy_from_flow">[docs]</a><span class="k">def</span> <span class="nf">bath_energy_from_flow</span><span class="p">(</span>
+    <span class="n">τ</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">util</span><span class="o">.</span><span class="n">EnsembleValue</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Calculates the bath energy by integrating the flow.</span>
+<span class="sd">    For the arguments see :any:`heat_flow_ensemble`.</span>
+
+<span class="sd">    :param τ: The time points of the simulations.</span>
+<span class="sd">    :returns: The value of the bath energy for each time step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">flow</span> <span class="o">=</span> <span class="n">heat_flow_ensemble</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">N</span><span class="p">,</span> <span class="n">flow_val</span><span class="p">,</span> <span class="n">σ_flow</span> <span class="ow">in</span> <span class="n">flow</span><span class="o">.</span><span class="n">aggregate_iterator</span><span class="p">:</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="o">*</span><span class="n">util</span><span class="o">.</span><span class="n">integrate_array</span><span class="p">(</span><span class="o">-</span><span class="n">flow_val</span><span class="p">,</span> <span class="n">τ</span><span class="p">,</span> <span class="n">σ_flow</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">util</span><span class="o">.</span><span class="n">EnsembleValue</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+</pre></div>
+
+              </div>
+              
+              
+              <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+</div>
+              
+          </main>
+          
+
+      </div>
+    </div>
+  
+  <script src="../../_static/js/index.be7d3bbb2ef33a8344ce.js"></script>
+<footer class="footer mt-5 mt-md-0">
+  <div class="container">
+    
+    <div class="footer-item">
+      <p class="copyright">
+    &copy; Copyright 1980, Valentin Boettcher.<br>
+</p>
+    </div>
+    
+    <div class="footer-item">
+      <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.4.0.<br>
+</p>
+    </div>
+    
+  </div>
+</footer>
+  </body>
+</html>
