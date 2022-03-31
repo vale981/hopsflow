@@ -1,0 +1,10 @@
+{
+  "include": [
+    "hopsflow"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "hopsflow"
+    }
+  ]
+}

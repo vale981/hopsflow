@@ -376,7 +376,7 @@ def heat_flow_ensemble(
     therm_args: Optional[Tuple[Iterator[np.ndarray], ThermalParams]] = None,
     only_therm: bool = False,
     **kwargs,
-) -> util.EnsembleReturn:
+) -> util.EnsembleValue:
     """Calculates the heat flow for an ensemble of trajectories.
 
     :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``
@@ -406,15 +406,15 @@ def heat_flow_ensemble(
         params = ray.get(params_ref)
         thermal = ray.get(thermal_ref)
 
-        run = HOPSRun(ψ_0, ψ_1, params)
+        run = HOPSRun(ψ_0, ψ_1, params)  # type: ignore
         flow = (
-            flow_trajectory_coupling(run, params)
+            flow_trajectory_coupling(run, params)  # type: ignore
             if not only_therm
             else np.zeros(ψ_0.shape[0])
         )
 
         if thermal is not None:
-            therm_run = ThermalRunParams(thermal, seed)
+            therm_run = ThermalRunParams(thermal, seed)  # type: ignore
             flow += flow_trajectory_therm(run, therm_run)
 
         return flow
@@ -434,7 +434,7 @@ def interaction_energy_ensemble(
     params: SystemParams,
     therm_args: Optional[Tuple[Iterator[int], ThermalParams]] = None,
     **kwargs,
-) -> util.EnsembleReturn:
+) -> util.EnsembleValue:
     """Calculates the heat flow for an ensemble of trajectories.
 
     :param ψ_0s: array of trajectories ``(N, time-steps, dim-state)``
@@ -461,11 +461,11 @@ def interaction_energy_ensemble(
         params = ray.get(params_ref)
         thermal = ray.get(thermal_ref)
 
-        run = HOPSRun(ψ_0, ψ_1, params)
-        energy = interaction_energy_coupling(run, params)
+        run = HOPSRun(ψ_0, ψ_1, params)  # type: ignore
+        energy = interaction_energy_coupling(run, params)  # type: ignore
 
         if thermal is not None:
-            therm_run = ThermalRunParams(thermal, seeds)
+            therm_run = ThermalRunParams(thermal, seeds)  # type: ignore
             energy += interaction_energy_therm(run, therm_run)
 
         return energy
@@ -483,7 +483,7 @@ def bath_energy_from_flow(
     τ: np.ndarray,
     *args,
     **kwargs,
-) -> util.EnsembleReturn:
+) -> util.EnsembleValue:
     """Calculates the bath energy by integrating the flow.
     For the arguments see :any:`heat_flow_ensemble`.
 
@@ -492,14 +492,9 @@ def bath_energy_from_flow(
     """
 
     flow = heat_flow_ensemble(*args, **kwargs)
-    single_return = False
-
-    if not isinstance(flow, list):
-        single_return = True
-        flow = [flow]
 
     results = []
-    for N, flow_val, σ_flow in flow:
+    for N, flow_val, σ_flow in flow.aggregate_iterator:
         results.append((N, *util.integrate_array(-flow_val, τ, σ_flow)))
 
-    return results[0] if single_return else results
+    return util.EnsembleValue(results)

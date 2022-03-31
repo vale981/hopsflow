@@ -19,148 +19,189 @@ from functools import singledispatch, singledispatchmethod
 from scipy.stats import NumericalInverseHermite
 import copy
 import ray
-
+import numbers
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
 
 
-# class EnsembleValue:
-#     def __init__(self, value: Union[Aggregate, list[Aggregate]]):
-#         self._value = value if isinstance(value, list) else [value]
+class EnsembleValue:
+    def __init__(self, value: Union[Aggregate, list[Aggregate]]):
+        self._value = (
+            value
+            if (isinstance(value, list) or isinstance(value, np.ndarray))
+            else [value]
+        )
 
-#     @property
-#     def final_aggregate(self):
-#         return self._value[-1]
+    @property
+    def final_aggregate(self):
+        return self._value[-1]
 
-#     @property
-#     def N(self):
-#         return self.final_aggregate[0]
+    @property
+    def N(self):
+        return self.final_aggregate[0]
 
-#     @property
-#     def value(self):
-#         return self.final_aggregate[1]
+    @property
+    def value(self):
+        return self.final_aggregate[1]
 
-#     @property
-#     def σ(self):
-#         return self.final_aggregate[2]
+    @property
+    def σ(self):
+        return self.final_aggregate[2]
 
-#     @property
-#     def Ns(self):
-#         return [N for N, _, _ in self._value]
+    @property
+    def Ns(self):
+        return [N for N, _, _ in self._value]
 
-#     @property
-#     def values(self):
-#         return [val for _, val, _ in self._value]
+    @property
+    def values(self):
+        return [val for _, val, _ in self._value]
 
-#     @property
-#     def σs(self):
-#         return [σ for _, _, σ in self._value]
+    @property
+    def σs(self):
+        return [σ for _, _, σ in self._value]
 
-#     @property
-#     def aggregate_iterator(self):
-#         for agg in self._value:
-#             yield agg
+    @property
+    def aggregate_iterator(self):
+        for agg in self._value:
+            yield agg
 
-#     def __getitem__(self, index: int):
-#         return self._value[index]
+    @property
+    def ensemble_value_iterator(self):
+        for agg in self._value:
+            yield EnsembleValue(agg)
 
-#     def __len__(self) -> int:
-#         return len(self._value)
+    def __getitem__(self, index: int):
+        return self._value[index]
 
-#     def insert(self, value: Aggregate):
-#         where = len(self._value)
-#         for i, (N, _, _) in enumerate(self._value):
-#             if N > value[0]:
-#                 where = i
-#                 break
+    def __len__(self) -> int:
+        return len(self._value)
 
-#         self._value.insert(where, value)
+    def insert(self, value: Aggregate):
+        where = len(self._value)
+        for i, (N, _, _) in enumerate(self._value):
+            if N > value[0]:
+                where = i
+                break
 
-#     def insert_multi(self, values: list[Aggregate]):
-#         for value in values:
-#             self.insert(value)
+        self._value.insert(where, value)
 
-#     @singledispatchmethod
-#     def __add__(self, _):
-#         return NotImplemented
+    def insert_multi(self, values: list[Aggregate]):
+        for value in values:
+            self.insert(value)
 
-#     @__add__.register
-#     def _(self, value: Aggregate):
-#         new = copy.deepcopy(self)
-#         new.insert(value)
-#         return new
+    def __abs__(self) -> "EnsembleValue":
+        out = []
 
-#     @__add__.register
-#     def _(self, value: list[Aggregate]):
-#         new = copy.deepcopy(self)
-#         new.insert_multi(value)
-#         return new
+        for N, value, σ in self._value:
+            out.append((N, abs(value), σ))
 
-#     @singledispatchmethod
-#     def __mul__(self, _):
-#         return NotImplemented
+        return EnsembleValue(out)
 
-#     @__mul__.register
-#     def _(self, scale: Union[float, int]):
-#         return EnsembleValue(
-#             [(N, val * scale, np.abs(σ * scale)) for N, val, σ in self._value]
-#         )
+    def __add__(self, other):
+        if type(self) == type(other):
+            if len(self) != len(other):
+                raise RuntimeError("Can only add values of equal length.")
 
-#     def __subs__(self, other: "EnsembleValue") -> "EnsembleValue":
-#         return self + (other * -1)
+            left = self._value
+            right = other._value
 
+            out = []
 
-# @EnsembleValue.__add__.register
-# def __add__(self, other: EnsembleValue) -> EnsembleValue:
-#     if len(self) != len(other):
-#         raise RuntimeError("Can only add values of equal length.")
+            for left_i, right_i in zip(left, right):
+                if left_i[0] != right_i[0]:
+                    raise RuntimeError("Can only add equal sample counts.")
 
-#     left = self._value
-#     right = other._value
+                out.append(
+                    (
+                        left_i[0],
+                        left_i[1] + right_i[1],
+                        np.sqrt(left_i[2] ** 2 + right_i[2] ** 2).real,
+                    )
+                )
 
-#     out = []
+            return EnsembleValue(out)
 
-#     for left_i, right_i in zip(left, right):
-#         if left_i[0] != right_i[0]:
-#             raise RuntimeError("Can only add equal sample counts.")
+        if isinstance(other, tuple):
+            new = copy.deepcopy(self)
+            new.insert(other)
+            return new
 
-#         out.append(
-#             (
-#                 left_i[0],
-#                 left_i[1] + right_i[1],
-#                 np.sqrt(left_i[2] ** 2 + right_i[2] ** 2).real,
-#             )
-#         )
+        if isinstance(other, list) and isinstance(other[0], tuple):
+            new = copy.deepcopy(self)
+            new.insert_multi(other)
+            return new
 
-#     return EnsembleValue(out)
+        if isinstance(other, numbers.Number):
+            out = []
 
+            for N, value, σ in self.aggregate_iterator:
+                out.append((N, value + other, σ))
 
-# @EnsembleValue.__mul__.register
-# def _(self, other: EnsembleValue) -> EnsembleValue:
-#     if len(self) != len(other):
-#         raise RuntimeError("Can only multiply values of equal length.")
+            return EnsembleValue(out)
 
-#     left = self._value
-#     right = other._value
+        return NotImplemented
 
-#     out = []
+    __radd__ = __add__
 
-#     for left_i, right_i in zip(left, right):
-#         if left_i[0] != right_i[0]:
-#             raise RuntimeError("Can only multiply equal sample counts.")
+    def __mul__(self, other):
+        if isinstance(other, float) or isinstance(other, int):
+            return EnsembleValue(
+                [(N, val * other, np.abs(σ * other)) for N, val, σ in self._value]
+            )
 
-#         out.append(
-#             (
-#                 left_i[0],
-#                 left_i[1] * right_i[1],
-#                 np.sqrt(
-#                     (right_i[1] * left_i[2]) ** 2 + (left_i[1] * right_i[2]) ** 2
-#                 ).real,
-#             )
-#         )
+        if type(self) == type(other):
+            if len(self) != len(other):
+                raise RuntimeError("Can only multiply values of equal length.")
 
-#     return EnsembleValue(out)
+            left = self._value
+            right = other._value
+
+            out = []
+
+            for left_i, right_i in zip(left, right):
+                if left_i[0] != right_i[0]:
+                    raise RuntimeError("Can only multiply equal sample counts.")
+
+                out.append(
+                    (
+                        left_i[0],
+                        left_i[1] * right_i[1],
+                        np.sqrt(
+                            (right_i[1] * left_i[2]) ** 2
+                            + (left_i[1] * right_i[2]) ** 2
+                        ).real,
+                    )
+                )
+
+            return EnsembleValue(out)
+
+        return NotImplemented
+
+    __rmul__ = __mul__
+
+    def __sub__(self, other: Union["EnsembleValue", float, int]) -> "EnsembleValue":
+        if (
+            type(self) == type(other)
+            or isinstance(other, float)
+            or isinstance(other, int)
+        ):
+            return self + (-1 * other)
+
+        return NotImplemented
+
+    def __rsub__(self, other: Union["EnsembleValue", float, int]) -> "EnsembleValue":
+        if (
+            type(self) == type(other)
+            or isinstance(other, float)
+            or isinstance(other, int)
+        ):
+            return (self * -1) + other
+
+        return NotImplemented
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self._value})"
 
 
 def ensemble_return_scale(left: float, right: EnsembleReturn) -> EnsembleReturn:
@@ -496,6 +537,16 @@ def _object_hook(dct: dict[str, Any]):
     return dct
 
 
+def _grouper(n: int, iterable: Iterator[Any]):
+    """Groups the iteartor into tuples of at most length ``n``."""
+
+    while True:
+        chunk = tuple(itertools.islice(iterable, n))
+        if not chunk:
+            return
+        yield chunk
+
+
 def ensemble_mean(
     arg_iter: Iterator[Any],
     function: Callable[..., np.ndarray],
@@ -503,8 +554,8 @@ def ensemble_mean(
     every: Optional[int] = None,
     save: Optional[str] = None,
     overwrite_cache: bool = False,
-) -> EnsembleReturn:
-
+    chunk_size: int = 20,
+) -> EnsembleValue:
     results = []
     aggregate = WelfordAggregator(function(next(arg_iter)))
 
@@ -531,19 +582,22 @@ def ensemble_mean(
 
         if not overwrite_cache and path.exists():
             logging.warning(f"Loading cache from: {path}")
-            return np.load(str(path), allow_pickle=True)
+            return EnsembleValue(np.load(str(path), allow_pickle=True))
 
     if N == 1:
-        results = [(1, aggregate.mean, np.zeros_like(aggregate.mean))]
-        return results if every else results[0]
+        return EnsembleValue([(1, aggregate.mean, np.zeros_like(aggregate.mean))])
 
-    remote_function = ray.remote(function)
+    @ray.remote
+    def remote_function(chunk: tuple):
+        return [function(arg) for arg in chunk]
 
     handles = [
-        remote_function.remote(arg)
-        for arg in tqdm(
-            itertools.islice(arg_iter, None, N - 1 if N else None),
-            total=N - 1 if N else None,
+        remote_function.remote(chunk)
+        for chunk in tqdm(
+            _grouper(
+                chunk_size, itertools.islice(arg_iter, None, N - 1 if N else None)
+            ),
+            total=int((N - 1 if N else None) / chunk_size + 1),
             desc="Loading",
         )
     ]
@@ -552,17 +606,17 @@ def ensemble_mean(
 
     while len(handles):
         done_id, handles = ray.wait(handles, fetch_local=True)
-        res = ray.get(done_id[0])
-        aggregate.update(res)
+        res_chunk = np.array(ray.get(done_id[0]))
+        for res in res_chunk:
+            aggregate.update(res)
+            if every is not None and (aggregate.n % every) == 0 or aggregate.n == N:
+                results.append(
+                    (aggregate.n, aggregate.mean.copy(), aggregate.ensemble_std.copy())
+                )
+
         progress.update()
 
-        if every is not None and (aggregate.n % every) == 0 or aggregate.n == N:
-            results.append(
-                (aggregate.n, aggregate.mean.copy(), aggregate.ensemble_std.copy())
-            )
-
-    if not every:
-        results = results[-1]
+    progress.close()
 
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -573,7 +627,7 @@ def ensemble_mean(
         with path.with_suffix(".json").open("wb") as f:
             f.write(json_meta_info)
 
-    return results
+    return EnsembleValue(results)
 
 
 class BCFDist(scipy.stats.rv_continuous):
