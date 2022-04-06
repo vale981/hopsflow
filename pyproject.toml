@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "hopsflow"
-version = "1.1.0"
+version = "1.2.0"
 description = "Calculating open system bath energy changes with HOPS and analytically."
 authors = ["Valentin Boettcher <hiro at protagon.space>"]
 license = "MIT"
@@ -15,6 +15,8 @@ stocproc = { git = "https://github.com/vale981/stocproc" }
 tqdm = "^4.62.3"
 lmfit = "^1.0.3"
 ray = "^1.11.0"
+hops = { git = "git@gitlab.hrz.tu-chemnitz.de:s8896854--tu-dresden.de/hops.git", branch="time_dep_coupling" }
+opt-einsum = "^3.3.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.910"

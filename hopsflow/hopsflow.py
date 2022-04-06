@@ -13,6 +13,9 @@ from typing import Optional, Tuple, Iterator, Union
 from stocproc import StocProc
 import itertools
 import ray
+from hops.util.dynamic_matrix import DynamicMatrix, DynamicMatrixList
+from numpy.typing import NDArray
+import opt_einsum as oe
 
 ###############################################################################
 #                          Interface/Parameter Object                         #
@@ -23,38 +26,41 @@ class SystemParams:
     """A parameter object to hold information about the physical
     system and global HOPS parameters.
 
-    :param L: the coupling operators as system matrices
-    :param G: the coupling factors in the exponential expansion of the BCF
-    :param W: the exponents in the exponential expansion of the BCF
-    :param bcf_scale: BCF scale factors
-    :param nonlinear: whether the trajectory was obtained through the nonlinear HOPS
-    :param fock_hops: whether the now fock hops hierarchy normalization is used
+    :param L: The coupling operators as system matrices.
+    :param G: The coupling factors in the exponential expansion of the BCF.
+    :param W: The exponents in the exponential expansion of the BCF.
+    :param t: The time points of the evaluation.
+    :param bcf_scale: The BCF scale factors.
+    :param nonlinear: Whether the trajectory was obtained through the nonlinear HOPS.
+    :param fock_hops: Whether the now fock hops hierarchy normalization is used.
     """
 
     __slots__ = [
         "L",
         "G",
         "W",
+        "t",
         "bcf_scale",
         "nonlinear",
         "coupling_interaction_prefactors",
         "coupling_flow_prefactors",
         "dim",
+        "apply_L",
     ]
 
     def __init__(
         self,
-        L: list[np.ndarray],
+        L: list[DynamicMatrix],
         G: list[np.ndarray],
         W: list[np.ndarray],
+        t: NDArray[np.float64],
         bcf_scale: Optional[list[float]] = None,
         nonlinear: bool = False,
         fock_hops: bool = True,
     ):
-        """Class initializer. Computes the most useful attributes
-        ahead of time."""
+        self.t = t
+        self.L = (DynamicMatrixList(L))(self.t)
 
-        self.L = L
         self.G = [g * scale for g, scale in zip(G, bcf_scale)] if bcf_scale else G
         self.W = W
 
@@ -70,6 +76,10 @@ class SystemParams:
 
         #: the dimensionality of the system
         self.dim = L[0].shape[0]
+
+        self.apply_L = oe.contract_expression(
+            "ntij,tj->nti", self.L, (len(t), self.dim), constant=[0]
+        )
 
 
 class HOPSRun:
@@ -109,7 +119,7 @@ class HOPSRun:
         The squared norm of the state, may be ``None`` for linear HOPS.
         """
 
-        self.ψ_coups = [util.apply_operator(self.ψ_0, L) for L in params.L]
+        self.ψ_coups = params.apply_L(self.ψ_0)
         """
         ψ_0 with the coupling operator applied for each bath.
         """
