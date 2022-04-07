@@ -59,7 +59,6 @@ class SystemParams:
         fock_hops: bool = True,
     ):
         self.t = t
-        self.L = (DynamicMatrixList(L))(self.t)
 
         self.G = [g * scale for g, scale in zip(G, bcf_scale)] if bcf_scale else G
         self.W = W
@@ -78,7 +77,10 @@ class SystemParams:
         self.dim = L[0].shape[0]
 
         self.apply_L = oe.contract_expression(
-            "ntij,tj->nti", self.L, (len(t), self.dim), constant=[0]
+            "ntij,tj->nti",
+            (DynamicMatrixList(L))(self.t),
+            (len(t), self.dim),
+            constants=[0],
         )
 
 
