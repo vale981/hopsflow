@@ -12,6 +12,7 @@ from numpy.polynomial import Polynomial
 from tqdm import tqdm
 from pathlib import Path
 import sys
+import shutil
 import hashlib
 import logging
 import json
@@ -512,11 +513,15 @@ class JSONEncoder(json.JSONEncoder):
         if hasattr(obj, "__bfkey__"):
             return f"<{type(obj)} ({obj.__bfkey__()})>"
 
-        return super().default(obj)
+        return obj.__dict__ if hasattr(obj, "__dict__") else "<not serializable>"
 
     @default.register
     def _(self, arr: np.ndarray):
         return {"type": "array", "value": arr.tolist()}
+
+    @default.register
+    def _(self, integer: np.int64):
+        return int(integer)
 
     @default.register
     def _(self, obj: complex):
@@ -565,7 +570,17 @@ def ensemble_mean(
             N=N,
             every=every,
             function_name=function.__name__,
-            first_iterator_value=aggregate.mean,
+            first_iterator_value="<not serializable>",
+        ),
+        cls=JSONEncoder,
+        ensure_ascii=False,
+    ).encode("utf-8")
+    json_meta_info_old = json.dumps(
+        dict(
+            N=N,
+            every=every,
+            function_name=function.__name__,
+            first_iterator_value="<not serializable>",
         ),
         cls=JSONEncoder,
         ensure_ascii=False,
@@ -579,6 +594,14 @@ def ensemble_mean(
         path = Path("results") / Path(
             f"{save}_{function.__name__}_{N}_{every}_{key}.npy"
         )
+
+        key_old = hashlib.sha256(json_meta_info_old).hexdigest()
+        path_old = Path("results") / Path(
+            f"{save}_{function.__name__}_{N}_{every}_{key_old}.npy"
+        )
+
+        if path_old.exists():
+            shutil.move(path_old, path)
 
         if not overwrite_cache and path.exists():
             logging.debug(f"Loading cache from: {path}")
