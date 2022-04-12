@@ -18,9 +18,12 @@ import logging
 import json
 from functools import singledispatch, singledispatchmethod
 from scipy.stats import NumericalInverseHermite
+import scipy.interpolate
 import copy
 import ray
 import numbers
+import matplotlib.pyplot as plt
+
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -454,11 +457,12 @@ def integrate_array(
 ) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray]]:
     """
     Calculates the antiderivative of the function sampled in ``arr``
-    along ``t``.  Optionally the error ``err`` is being integrated alongside.
+    along ``t`` using spline interpolation.  Optionally the error
+    ``err`` is being integrated alongside.
     """
 
-    integral = scipy.integrate.cumulative_trapezoid(arr, t, initial=0)
-
+    splines = [scipy.interpolate.UnivariateSpline(t, y, s=0, k=5) for y in arr]
+    integral = np.array([spline.antiderivative()(t) for spline in splines])
     if err is not None:
         err_integral = np.sqrt(
             scipy.integrate.cumulative_trapezoid(err**2, t, initial=0)
