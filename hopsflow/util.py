@@ -23,7 +23,8 @@ import copy
 import ray
 import numbers
 import matplotlib.pyplot as plt
-
+from hops.util.dynamic_matrix import DynamicMatrix
+import opt_einsum as oe
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -390,11 +391,12 @@ def operator_expectation(
 
 def operator_expectation_ensemble(
     ψs: Iterator[np.ndarray],
-    op: np.ndarray,
+    op: Union[np.ndarray, DynamicMatrix],
+    t: np.ndarray,
     normalize: bool = False,
     real: bool = False,
     **kwargs,
-) -> EnsembleReturn:
+) -> EnsembleValue:
     """Calculates the expecation value of ``op`` as a time series.
 
     :param ψs: A collection of stochastic trajectories.  Each
@@ -408,8 +410,33 @@ def operator_expectation_ensemble(
     :returns: the expectation value
     """
 
-    def op_exp_task(ψ):
-        return sandwhich_operator(ψ, op, normalize, real)
+    if isinstance(op, DynamicMatrix):
+        calc_sandwhich = oe.contract_expression(
+            "ti,tij,tj->t",
+            (len(t), op.shape[0]),
+            op(t),
+            (len(t), op.shape[0]),
+            constants=[1],
+        )
+    else:
+        calc_sandwhich = oe.contract_expression(
+            "ti,ij,tj->t",
+            (len(t), op.shape[0]),
+            op,
+            (len(t), op.shape[0]),
+            constants=[1],
+        )
+
+    def op_exp_task(ψ: np.ndarray):
+        sandwhiches: np.ndarray = calc_sandwhich(ψ.conj(), ψ)  # type: ignore
+
+        if normalize:
+            sandwhiches /= np.sum(ψ.conj() * ψ, axis=1).real
+
+        if real:
+            sandwhiches = sandwhiches.real
+
+        return sandwhiches
 
     return ensemble_mean(ψs, op_exp_task, **kwargs)
 
