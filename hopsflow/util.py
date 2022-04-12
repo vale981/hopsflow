@@ -23,7 +23,7 @@ import copy
 import ray
 import numbers
 import matplotlib.pyplot as plt
-from hops.util.dynamic_matrix import DynamicMatrix
+from hops.util.dynamic_matrix import DynamicMatrix, ConstantMatrix
 import opt_einsum as oe
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
@@ -409,6 +409,9 @@ def operator_expectation_ensemble(
 
     :returns: the expectation value
     """
+
+    if isinstance(op, ConstantMatrix):
+        op = op(0)
 
     if isinstance(op, DynamicMatrix):
         calc_sandwhich = oe.contract_expression(
