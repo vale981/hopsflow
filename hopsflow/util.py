@@ -682,7 +682,9 @@ def ensemble_mean(
                 fetch_local=True,
             )
 
-        chunks[index] = remote_function.remote(chunk)
+        ref = remote_function.remote(chunk)
+        chunks[index] = ref
+        processing_refs.append(ref)
 
     progress = tqdm(total=len(chunks), desc="Processing")
 
