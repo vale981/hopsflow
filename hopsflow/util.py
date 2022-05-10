@@ -26,6 +26,7 @@ import numbers
 import matplotlib.pyplot as plt
 from hops.util.dynamic_matrix import DynamicMatrix, ConstantMatrix
 import opt_einsum as oe
+import gc
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -655,32 +656,55 @@ def ensemble_mean(
     def remote_function(chunk: tuple):
         return [function(arg) for arg in chunk]
 
-    handles = [
-        remote_function.remote(chunk)
-        for chunk in tqdm(
+    num_chunks = int((N - 1) / chunk_size + 1) if N is not None else None
+    chunk_iterator = tqdm(
+        zip(
             _grouper(
-                chunk_size, itertools.islice(arg_iter, None, N - 1 if N else None)
+                chunk_size,
+                itertools.islice(arg_iter, None, N - 1 if N else None),
             ),
-            total=int((N - 1) / chunk_size + 1) if N is not None else None,
-            desc="Loading",
-        )
-    ]
+            itertools.count(0),
+        ),
+        total=num_chunks,
+        desc="Loading",
+    )
 
-    progress = tqdm(total=len(handles), desc="Processing")
+    processing_refs = []
+    chunks = {}
 
-    for ref in handles:
-        res_chunk = np.array(ray.get(ref))
+    in_flight = int(ray.available_resources().get("CPU", 0)) * 3
+
+    for chunk, index in chunk_iterator:
+        if len(processing_refs) > in_flight:
+            _, processing_refs = ray.wait(
+                processing_refs,
+                num_returns=len(processing_refs) - in_flight,
+                fetch_local=True,
+            )
+
+        chunks[index] = remote_function.remote(chunk)
+
+    progress = tqdm(total=len(chunks), desc="Processing")
+
+    for index in range(len(chunks)):
+        res_chunk = ray.get(chunks[index])
+
         for res in res_chunk:
             aggregate.update(res)
             if every is not None and (aggregate.n % every) == 0 or aggregate.n == N:
                 results.append(
-                    (aggregate.n, aggregate.mean.copy(), aggregate.ensemble_std.copy())
+                    (
+                        aggregate.n,
+                        aggregate.mean.copy(),
+                        aggregate.ensemble_std.copy(),
+                    )
                 )
 
+        del chunks[index]
         progress.update()
 
     progress.close()
-
+    gc.collect()
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
         logging.info(f"Writing cache to: {path}")
