@@ -83,6 +83,9 @@ class EnsembleValue:
     def __len__(self) -> int:
         return len(self._value)
 
+    def for_bath(self, bath: int):
+        return EnsembleValue([(N, val[bath], σ[bath]) for N, val, σ in self._value])
+
     def insert(self, value: Aggregate):
         where = len(self._value)
         for i, (N, _, _) in enumerate(self._value):
