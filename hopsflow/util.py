@@ -498,9 +498,12 @@ def integrate_array(
     splines = [scipy.interpolate.UnivariateSpline(t, y, s=0, k=5) for y in arr]
     integral = np.array([spline.antiderivative()(t) for spline in splines])
     if err is not None:
-        err_integral = np.sqrt(
-            scipy.integrate.cumulative_trapezoid(err**2, t, initial=0)
-        ).real
+        dt = t[1:] - t[:-1]
+        err_sum = [
+            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt**2)))
+            for e in err
+        ]
+        err_integral = np.sqrt(err_sum).real
 
         return integral, err_integral
 
