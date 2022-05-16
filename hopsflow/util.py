@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 from hops.util.dynamic_matrix import DynamicMatrix, ConstantMatrix
 import opt_einsum as oe
 import gc
+import math
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -594,6 +595,31 @@ def _grouper(n: int, iterable: Iterator[Any]):
         yield chunk
 
 
+@ray.remote
+def _ensemble_remote_function(function, chunk: tuple, index: int):
+    res = np.array([np.array(function(arg)) for arg in chunk])
+    return res, index
+
+
+def process_chunks(highest_index, aggregate, chunks, every, results, N):
+    while highest_index in chunks:
+        for res in chunks[highest_index]:
+            aggregate.update(res)
+            if every is not None and (aggregate.n % every) == 0 or aggregate.n == N:
+                results.append(
+                    (
+                        aggregate.n,
+                        aggregate.mean.copy(),
+                        aggregate.ensemble_std.copy(),
+                    )
+                )
+
+        del chunks[highest_index]
+        highest_index += 1
+
+    return highest_index, results
+
+
 def ensemble_mean(
     arg_iter: Iterator[Any],
     function: Callable[..., np.ndarray],
@@ -601,9 +627,10 @@ def ensemble_mean(
     every: Optional[int] = None,
     save: Optional[str] = None,
     overwrite_cache: bool = False,
-    chunk_size: int = 20,
+    chunk_size: Optinal[int] = None,
 ) -> EnsembleValue:
     results = []
+    first_result = function(next(arg_iter))
     aggregate = WelfordAggregator(function(next(arg_iter)))
 
     path = None
@@ -652,61 +679,85 @@ def ensemble_mean(
     if N == 1:
         return EnsembleValue([(1, aggregate.mean, np.zeros_like(aggregate.mean))])
 
-    @ray.remote
-    def remote_function(chunk: tuple):
-        return [function(arg) for arg in chunk]
+    if chunk_size is None:
+        chunk_size = 100000 // (first_result.size * first_result.itemsize)
+        logging.debug(f"Setting chunk size to {chunk_size}.")
 
-    num_chunks = int((N - 1) / chunk_size + 1) if N is not None else None
-    chunk_iterator = tqdm(
-        zip(
-            _grouper(
-                chunk_size,
-                itertools.islice(arg_iter, None, N - 1 if N else None),
+    num_chunks = math.ceil(N / chunk_size) if N is not None else None
+    chunk_iterator = iter(
+        tqdm(
+            zip(
+                _grouper(
+                    chunk_size,
+                    itertools.islice(arg_iter, None, N - 1 if N else None),
+                ),
+                itertools.count(0),
             ),
-            itertools.count(0),
-        ),
-        total=num_chunks,
-        desc="Loading",
+            total=num_chunks,
+            desc="Loading",
+        )
     )
 
+    finished = []
     processing_refs = []
     chunks = {}
 
-    in_flight = int(ray.available_resources().get("CPU", 0)) * 3
+    in_flight = int(ray.available_resources().get("CPU", 0)) * 2
 
-    for chunk, index in chunk_iterator:
+    function_on_store = ray.put(function)
+
+    highest_index = 0
+
+    while True:
+        try:
+            next_val = next(chunk_iterator)
+        except StopIteration:
+            next_val = None
+
         if len(processing_refs) > in_flight:
-            _, processing_refs = ray.wait(
+            finished, processing_refs = ray.wait(
                 processing_refs,
-                num_returns=len(processing_refs) - in_flight,
+                num_returns=len(processing_refs) - in_flight
+                if next_val is not None
+                else len(processing_refs),
                 fetch_local=True,
             )
 
-        ref = remote_function.remote(chunk)
-        chunks[index] = ref
-        processing_refs.append(ref)
+        has_downloaded = len(finished) > 0
+        for result in finished:
+            res_chunk, idx = ray.get(result)
+            # print(
+            #     res_chunk[0].size * len(res_chunk) * res_chunk[0].itemsize / 1024 / 1024
+            # )
+            chunks[idx] = res_chunk
 
-    progress = tqdm(total=len(chunks), desc="Processing")
+        finished = []
+        if has_downloaded:
+            highest_index, results = process_chunks(
+                highest_index, aggregate, chunks, every, results, N
+            )
 
-    for index in range(len(chunks)):
-        res_chunk = ray.get(chunks[index])
-
-        for res in res_chunk:
-            aggregate.update(res)
-            if every is not None and (aggregate.n % every) == 0 or aggregate.n == N:
-                results.append(
-                    (
-                        aggregate.n,
-                        aggregate.mean.copy(),
-                        aggregate.ensemble_std.copy(),
-                    )
+        if next_val:
+            chunk_ref = ray.put(next_val[0])
+            processing_refs.append(
+                _ensemble_remote_function.remote(
+                    function_on_store, chunk_ref, next_val[1]
                 )
+            )
+        else:
+            break
 
-        del chunks[index]
-        progress.update()
+    del (
+        chunk_iterator,
+        function_on_store,
+        finished,
+        chunk_ref,
+        chunks,
+        processing_refs,
+    )
 
-    progress.close()
     gc.collect()
+
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
         logging.info(f"Writing cache to: {path}")
@@ -715,6 +766,9 @@ def ensemble_mean(
 
         with path.with_suffix(".json").open("wb") as f:
             f.write(json_meta_info)
+
+    del aggregate
+    gc.collect()
 
     return EnsembleValue(results)
 
