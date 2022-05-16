@@ -409,14 +409,8 @@ def heat_flow_ensemble(
 
     thermal = therm_args[1] if therm_args else None
 
-    params_ref = ray.put(params)
-    thermal_ref = ray.put(thermal)
-
     def flow_worker(ψs: tuple[np.ndarray, np.ndarray, int]):
         ψ_0, ψ_1, seed = ψs
-
-        params = ray.get(params_ref)
-        thermal = ray.get(thermal_ref)
 
         run = HOPSRun(ψ_0, ψ_1, params)  # type: ignore
         flow = (
@@ -463,15 +457,10 @@ def interaction_energy_ensemble(
 
     thermal = therm_args[1] if therm_args else None
 
-    params_ref = ray.put(params)
-    thermal_ref = ray.put(thermal)
-
     def interaction_energy_task(
         ψs: Tuple[np.ndarray, np.ndarray, int],
     ) -> np.ndarray:
         ψ_0, ψ_1, seeds = ψs
-        params = ray.get(params_ref)
-        thermal = ray.get(thermal_ref)
 
         run = HOPSRun(ψ_0, ψ_1, params)  # type: ignore
         energy = interaction_energy_coupling(run, params)  # type: ignore
@@ -509,4 +498,5 @@ def bath_energy_from_flow(
     for N, flow_val, σ_flow in flow.aggregate_iterator:
         results.append((N, *util.integrate_array(-flow_val, τ, σ_flow)))
 
+    del flow
     return util.EnsembleValue(results)
