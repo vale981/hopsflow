@@ -34,12 +34,22 @@ EnsembleReturn = Union[Aggregate, list[Aggregate]]
 
 
 class EnsembleValue:
-    def __init__(self, value: Union[Aggregate, list[Aggregate]]):
-        self._value: list[Aggregate] = (  # type:ignore
-            value
-            if (isinstance(value, list) or isinstance(value, np.ndarray))
-            else [value]
-        )
+    def __init__(
+        self, value: Union[Aggregate, list[Aggregate], tuple[np.ndarray, np.ndarray]]
+    ):
+        if (
+            isinstance(value, tuple)
+            and len(value) == 2
+            and isinstance(value[0], np.ndarray)
+            and isinstance(value[1], np.ndarray)
+        ):
+            self._value: list[Aggregate] = [[0, *value]]  # type:ignore
+        else:
+            self._value: list[Aggregate] = (  # type:ignore
+                value
+                if (isinstance(value, list) or isinstance(value, np.ndarray))
+                else [value]
+            )
 
     @property
     def final_aggregate(self):
