@@ -96,7 +96,25 @@ class EnsembleValue:
         return len(self._value)
 
     def for_bath(self, bath: int):
+        if self.num_baths == 1:
+            if bath > 0:
+                raise IndexError("Only one bath available.")
+
+            return self
+
         return EnsembleValue([(N, val[bath], σ[bath]) for N, val, σ in self._value])
+
+    @property
+    def num_baths(self) -> int:
+        shape = self.value.shape
+        return self.value.shape[0] if len(shape) > 1 else 1
+
+    def sum_baths(self) -> EnsembleValue:
+        final = self.for_bath(0)
+        for i in range(1, self.num_baths):
+            final = final + self.for_bath(i)
+
+        return final
 
     def insert(self, value: Aggregate):
         where = len(self._value)
@@ -110,6 +128,11 @@ class EnsembleValue:
     def insert_multi(self, values: list[Aggregate]):
         for value in values:
             self.insert(value)
+
+    def consistency(self, other: EnsembleValue) -> float:
+        diff = abs(self[-1] - other[-1])
+
+        return (diff.value < diff.σ).sum() / len(diff.for_bath(0).value) * 100
 
     def __abs__(self) -> "EnsembleValue":
         out = []
