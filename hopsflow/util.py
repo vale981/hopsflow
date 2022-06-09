@@ -96,12 +96,6 @@ class EnsembleValue:
         return len(self._value)
 
     def for_bath(self, bath: int):
-        if self.num_baths == 1:
-            if bath > 0:
-                raise IndexError("Only one bath available.")
-
-            return self
-
         return EnsembleValue([(N, val[bath], σ[bath]) for N, val, σ in self._value])
 
     @property
@@ -545,7 +539,7 @@ def integrate_array(
     if err is not None:
         dt = t[1:] - t[:-1]
         err_sum = [
-            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt ** 2)))
+            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt**2)))
             for e in err
         ]
         err_integral = np.sqrt(err_sum).real
