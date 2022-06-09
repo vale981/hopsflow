@@ -153,14 +153,24 @@ class EnsembleValue:
             out = []
 
             for left_i, right_i in zip(left, right):
-                if left_i[0] != right_i[0]:
-                    raise RuntimeError("Can only add equal sample counts.")
+                if left_i[0] < right_i[0]:
+                    samples = left_i[0]
+                    σ = np.sqrt(
+                        left_i[2] ** 2
+                        + right_i[2] ** 2 * (right_i[0] - 1) / (left_i[0] - 1)
+                    ).real
+                else:
+                    samples = right_i[0]
+                    σ = np.sqrt(
+                        left_i[2] ** 2 * (left_i[0] - 1) / (right_i[0] - 1)
+                        + right_i[2] ** 2
+                    ).real
 
                 out.append(
                     (
-                        left_i[0],
+                        samples,
                         left_i[1] + right_i[1],
-                        np.sqrt(left_i[2] ** 2 + right_i[2] ** 2).real,
+                        σ,
                     )
                 )
 
@@ -535,7 +545,7 @@ def integrate_array(
     if err is not None:
         dt = t[1:] - t[:-1]
         err_sum = [
-            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt**2)))
+            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt ** 2)))
             for e in err
         ]
         err_integral = np.sqrt(err_sum).real
