@@ -698,7 +698,7 @@ def ensemble_mean(
         return EnsembleValue([(1, aggregate.mean, np.zeros_like(aggregate.mean))])
 
     if chunk_size is None:
-        chunk_size = 100000 // (first_result.size * first_result.itemsize)
+        chunk_size = max(100000 // (first_result.size * first_result.itemsize), 1)
         logging.debug(f"Setting chunk size to {chunk_size}.")
 
     num_chunks = math.ceil(N / chunk_size) if N is not None else None
