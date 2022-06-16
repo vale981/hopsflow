@@ -28,6 +28,7 @@ from hops.util.dynamic_matrix import DynamicMatrix, ConstantMatrix
 import opt_einsum as oe
 import gc
 import math
+import time
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -646,6 +647,7 @@ def ensemble_mean(
     save: Optional[str] = None,
     overwrite_cache: bool = False,
     chunk_size: Optional[int] = None,
+    in_flight: Optional[int] = None,
 ) -> EnsembleValue:
     results = []
     first_result = function(next(arg_iter))
@@ -720,7 +722,7 @@ def ensemble_mean(
     processing_refs = []
     chunks = {}
 
-    in_flight = int(ray.available_resources().get("CPU", 0)) * 2
+    in_flight = in_flight or int(ray.available_resources().get("CPU", 0)) * 2
 
     function_on_store = ray.put(function)
 
@@ -773,6 +775,10 @@ def ensemble_mean(
                         )
 
                 highest_index += 1
+
+            amount = gc.collect()
+            if amount > 0:
+                time.sleep(0.1)
 
         if next_val:
             chunk_ref = ray.put(next_val[0])
