@@ -648,6 +648,7 @@ def ensemble_mean(
     overwrite_cache: bool = False,
     chunk_size: Optional[int] = None,
     in_flight: Optional[int] = None,
+    gc_sleep: float = 0.1,
 ) -> EnsembleValue:
     results = []
     first_result = function(next(arg_iter))
@@ -776,9 +777,8 @@ def ensemble_mean(
 
                 highest_index += 1
 
-            amount = gc.collect()
-            if amount > 0:
-                time.sleep(0.1)
+            gc.collect()
+            time.sleep(gc_sleep)
 
         if next_val:
             chunk_ref = ray.put(next_val[0])
