@@ -548,7 +548,7 @@ def energy_change_from_interaction_power(
 
     results = []
     for N, power_val, σ_power in power.aggregate_iterator:
-        results.append((N, *util.integrate_array(-power_val, τ, σ_power)))
+        results.append((N, *util.integrate_array(power_val, τ, σ_power)))
 
     del power
     return util.EnsembleValue(results)
