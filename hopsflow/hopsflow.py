@@ -27,12 +27,15 @@ class SystemParams:
     system and global HOPS parameters.
 
     :param L: The coupling operators as system matrices.
-    :param G: The coupling factors in the exponential expansion of the BCF.
+    :param G: The coupling factors in the exponential expansion of the
+              BCF.
     :param W: The exponents in the exponential expansion of the BCF.
     :param t: The time points of the evaluation.
     :param bcf_scale: The BCF scale factors.
-    :param nonlinear: Whether the trajectory was obtained through the nonlinear HOPS.
-    :param fock_hops: Whether the now fock hops hierarchy normalization is used.
+    :param nonlinear: Whether the trajectory was obtained through the
+        nonlinear HOPS.
+    :param fock_hops: Whether the now fock hops hierarchy
+        normalization is used.
     """
 
     __slots__ = [
@@ -46,6 +49,7 @@ class SystemParams:
         "coupling_flow_prefactors",
         "dim",
         "apply_L",
+        "apply_L_dot",
     ]
 
     def __init__(
@@ -57,6 +61,7 @@ class SystemParams:
         bcf_scale: Optional[list[float]] = None,
         nonlinear: bool = False,
         fock_hops: bool = True,
+        power: bool = False,
     ):
         self.t = t
 
@@ -76,12 +81,32 @@ class SystemParams:
         #: the dimensionality of the system
         self.dim = L[0].shape[0]
 
+        """
+        A fast einstein sum to apply the ``L`` operators to the zeroth
+        hierarchy state for each time step.
+        """
         self.apply_L = oe.contract_expression(
             "ntij,tj->nti",
             (DynamicMatrixList(L))(self.t),
             (len(t), self.dim),
             constants=[0],
         )
+
+        """
+        Same as :any:`apply_L` but for the time derivatives of the
+        ``L``.
+        """
+        self.apply_L_dot = None
+
+        try:
+            self.apply_L_dot = oe.contract_expression(
+                "ntij,tj->nti",
+                (DynamicMatrixList(L).derivative())(self.t),
+                (len(t), self.dim),
+                constants=[0],
+            )
+        except NotImplementedError:
+            self.apply_L_dot = None
 
 
 class HOPSRun:
@@ -95,6 +120,9 @@ class HOPSRun:
         It will be reshaped to a list containing arrays of the
         shape``(time, hierarchy-width, dim_state)`` (one for each
         bath).
+
+    :param power: whether to calculate the interaction power (replaces
+        the coupling operators with their time derivatives)
     """
 
     __slots__ = [
@@ -104,9 +132,12 @@ class HOPSRun:
         "ψ_coups",
         "t_steps",
         "nonlinear",
+        "power",
     ]
 
-    def __init__(self, ψ_0: np.ndarray, ψ_1: np.ndarray, params: SystemParams):
+    def __init__(
+        self, ψ_0: np.ndarray, ψ_1: np.ndarray, params: SystemParams, power=False
+    ):
         """Class initializer. Computes the most useful attributes
         ahead of time."""
 
@@ -121,10 +152,22 @@ class HOPSRun:
         The squared norm of the state, may be ``None`` for linear HOPS.
         """
 
-        self.ψ_coups = params.apply_L(self.ψ_0)
+        if power:
+            if params.apply_L_dot is None:
+                raise NotImplementedError
+
+            ψ_coups = params.apply_L_dot(self.ψ_0)
+
+        else:
+            ψ_coups = params.apply_L(self.ψ_0)
+
+        self.ψ_coups = ψ_coups
         """
-        ψ_0 with the coupling operator applied for each bath.
+        ψ_0 with the coupling operator (or its derivative) applied for each bath.
         """
+
+        self.power = power
+        """Wether the ``L`` operators have been replaced with their derivatives."""
 
         self.t_steps = self.ψ_0.shape[0]
         """The number of timesteps."""
@@ -321,17 +364,14 @@ def flow_trajectory(
     return flow
 
 
-def interaction_energy_coupling(
-    run: HOPSRun,
-    params: SystemParams,
-) -> np.ndarray:
+def interaction_energy_coupling(run: HOPSRun, params: SystemParams) -> np.ndarray:
     r"""Calculates the coupling part of the interaction energy
     expectation value for a trajectory.
 
     :param run: a parameter object for the current trajectory, see :any:`HOPSRun`
     :param params: a parameter object for the system, see :any:`SystemParams`
 
-    :returns: the value of the interaction energy for each time step
+    :returns: the value of the interaction energy (or power) for each time step
     """
 
     # here we apply the prefactors to each hierarchy state
@@ -351,12 +391,16 @@ def interaction_energy_coupling(
     return run.normalize_maybe(flows)
 
 
-def interaction_energy_therm(run: HOPSRun, therm_run: ThermalRunParams) -> np.ndarray:
+def interaction_energy_therm(
+    run: HOPSRun, therm_run: ThermalRunParams, power: bool = False
+) -> np.ndarray:
     r"""Calculates the thermal part of the interaction energy.
 
     :param run: a parameter object, see :any:`HOPSRun`
+    :param params: a parameter object for the system, see :any:`SystemParams`
     :param therm_run: a parameter object, see :any:`ThermalParams`
-    :returns: the value of the thermal interaction for each time step
+
+    :returns: the value of the thermal interaction (or power) for each time step
     """
 
     energies = np.array(
@@ -439,6 +483,7 @@ def interaction_energy_ensemble(
     ψ_1s: Iterator[np.ndarray],
     params: SystemParams,
     therm_args: Optional[Tuple[Iterator[int], ThermalParams]] = None,
+    power: bool = False,
     **kwargs,
 ) -> util.EnsembleValue:
     """Calculates the heat flow for an ensemble of trajectories.
@@ -450,9 +495,11 @@ def interaction_energy_ensemble(
         :any:`SystemParams`
     :param therm_args: the realization parameters and the parameter
         object, see :any:`ThermalParams`
+    :param power: whether to calculate the interaction power
+
 
     The ``**kwargs`` are passed to :any:`hopsflow.utility.ensemble_mean`.
-    :returns: the value of the flow for each time step
+    :returns: the value of the interaction energy (or power) for each time step
     """
 
     thermal = therm_args[1] if therm_args else None
@@ -462,7 +509,7 @@ def interaction_energy_ensemble(
     ) -> np.ndarray:
         ψ_0, ψ_1, seeds = ψs
 
-        run = HOPSRun(ψ_0, ψ_1, params)  # type: ignore
+        run = HOPSRun(ψ_0, ψ_1, params, power)  # type: ignore
         energy = interaction_energy_coupling(run, params)  # type: ignore
 
         if thermal is not None:
@@ -478,6 +525,33 @@ def interaction_energy_ensemble(
         interaction_energy_task,
         **kwargs,
     )
+
+
+def energy_change_from_interaction_power(
+    τ: np.ndarray,
+    *args,
+    **kwargs,
+) -> util.EnsembleValue:
+    """Calculates the energy change due to the explicit time
+    dependence of the interaction hamiltonian.
+
+    For the arguments see :any:`interaction_energy_ensemble`.
+
+    :param τ: The time points of the simulations.
+
+    :returns: The value of the total energy change due to the time
+              dependence of the interaction for each time step.
+    """
+
+    kwargs = kwargs | dict(power=True)
+    power = interaction_energy_ensemble(*args, **kwargs)
+
+    results = []
+    for N, power_val, σ_power in power.aggregate_iterator:
+        results.append((N, *util.integrate_array(-power_val, τ, σ_power)))
+
+    del power
+    return util.EnsembleValue(results)
 
 
 def bath_energy_from_flow(
