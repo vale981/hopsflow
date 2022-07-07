@@ -90,6 +90,28 @@ class EnsembleValue:
         for agg in self._value:
             yield EnsembleValue(agg)
 
+    @property
+    def mean(self):
+        N, val, σ = self.final_aggregate
+
+        return EnsembleValue(
+            [(N, val.mean().copy(), np.sqrt((σ.copy() ** 2).sum() / val.size**2))]
+        )
+
+    @property
+    def max(self):
+        N, val, σ = self.final_aggregate
+        max_index = np.argmax(val)
+
+        return EnsembleValue([(N, val[max_index].copy(), σ[max_index].copy())])
+
+    @property
+    def min(self):
+        N, val, σ = self.final_aggregate
+        min_index = np.argmin(val)
+
+        return EnsembleValue([(N, val[min_index].copy(), σ[min_index].copy())])
+
     def __getitem__(self, index):
         return EnsembleValue(self._value[index])
 
