@@ -119,6 +119,9 @@ class EnsembleValue:
         return len(self._value)
 
     def for_bath(self, bath: int):
+        if self.num_baths == 1 and len(self.value.shape) == 1:
+            return self
+
         return EnsembleValue([(N, val[bath], σ[bath]) for N, val, σ in self._value])
 
     @property
@@ -150,6 +153,15 @@ class EnsembleValue:
         diff = abs(self[-1] - other[-1])
 
         return (diff.value < diff.σ).sum() / len(diff.for_bath(0).value) * 100
+
+    def integrate(self, τ: np.ndarray) -> EnsembleValue:
+        """Calculate the antiderivative along a 'time axis' ``τ``."""
+
+        results = []
+        for N, val, σ in self.aggregate_iterator:
+            results.append((N, *integrate_array(val, τ, σ)))
+
+        return EnsembleValue(results)
 
     def __abs__(self) -> "EnsembleValue":
         out = []
@@ -557,6 +569,13 @@ def integrate_array(
     ``err`` is being integrated alongside.
     """
 
+    multiple_baths = len(arr.shape) > 1
+
+    if not multiple_baths:
+        arr = arr[None, ...]
+        if err is not None:
+            err = err[None, ...]
+
     splines = [scipy.interpolate.UnivariateSpline(t, y, s=0, k=5) for y in arr]
     integral = np.array([spline.antiderivative()(t) for spline in splines])
     if err is not None:
@@ -567,9 +586,14 @@ def integrate_array(
         ]
         err_integral = np.sqrt(err_sum).real
 
-        return integral, err_integral
+        if multiple_baths:
+            return integral, err_integral
+        return integral[0], err_integral[0]
 
-    return integral
+    if multiple_baths:
+        return integral
+
+    return integral[0]
 
 
 ###############################################################################

@@ -546,12 +546,7 @@ def energy_change_from_interaction_power(
     kwargs = kwargs | dict(power=True)
     power = interaction_energy_ensemble(*args, **kwargs)
 
-    results = []
-    for N, power_val, σ_power in power.aggregate_iterator:
-        results.append((N, *util.integrate_array(power_val, τ, σ_power)))
-
-    del power
-    return util.EnsembleValue(results)
+    return power.integrate(τ)
 
 
 def bath_energy_from_flow(
@@ -568,9 +563,4 @@ def bath_energy_from_flow(
 
     flow = heat_flow_ensemble(*args, **kwargs)
 
-    results = []
-    for N, flow_val, σ_flow in flow.aggregate_iterator:
-        results.append((N, *util.integrate_array(-flow_val, τ, σ_flow)))
-
-    del flow
-    return util.EnsembleValue(results)
+    return -1 * flow.integrate(τ)
