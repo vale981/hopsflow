@@ -63,7 +63,6 @@ class SystemParams:
         bcf_scale: Optional[list[float]] = None,
         nonlinear: bool = False,
         fock_hops: bool = True,
-        power: bool = False,
     ):
         self.t = t
 
