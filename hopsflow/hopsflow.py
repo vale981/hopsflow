@@ -16,6 +16,8 @@ import ray
 from hops.util.dynamic_matrix import DynamicMatrix, DynamicMatrixList
 from numpy.typing import NDArray
 import opt_einsum as oe
+from hops.core.hierarchy_data import HIData
+from hops.core.hierarchy_parameters import HIParams
 
 ###############################################################################
 #                          Interface/Parameter Object                         #
@@ -107,6 +109,27 @@ class SystemParams:
             )
         except NotImplementedError:
             self.apply_L_dot = None
+
+    @classmethod
+    def from_hi_params(cls, params: HIParams, **kwargs) -> "SystemParams":
+        """Construct a :any:`SystemParams` object from the HOPS
+        configuration.
+
+
+        The ``kwargs`` are forwarded to the constructor.
+
+        :param params: The :any:`hops.core.hierarchy_parameters`
+            object that holds the HOPS config.
+        """
+        return cls(
+            L=params.SysP.L,
+            G=params.SysP.g,
+            W=params.SysP.w,
+            t=params.IntP.t,
+            nonlinear=params.HiP.nonlinear,
+            fock_hops=True,
+            **kwargs,  # no bcf scale, as this has been built in already
+        )
 
 
 class HOPSRun:
@@ -448,6 +471,7 @@ def heat_flow_ensemble(
 
     :returns: the value of the flow for each time step
     """
+
     if therm_args is None and only_therm:
         raise ValueError("Can't calculate only thermal part if therm_args are None.")
 
@@ -476,6 +500,34 @@ def heat_flow_ensemble(
         flow_worker,
         **kwargs,
     )
+
+
+def heat_flow_from_data(
+    data: HIData,
+    *args,
+    **kwargs,
+) -> util.EnsembleValue:
+    """Calculates the heat flow for an ensemble of trajectories.
+
+    The rest of the ``args`` and ``kwargs`` is passed on to
+    :any:`util.heat_flow_ensemble`.
+
+    :param data: The data instance that contains the trajectories.
+        Does not have to be opened yet.
+
+    :returns: the value of the flow for each time step
+    """
+
+    with data as d:
+        if "save" in kwargs:
+            kwargs["save"] += "_" + data.get_hi_key_hash()
+
+        return heat_flow_ensemble(
+            d.valid_sample_iterator(d.stoc_traj),
+            d.valid_sample_iterator(d.aux_states),
+            *args,
+            **(dict(N=data.samples) | kwargs),
+        )
 
 
 def interaction_energy_ensemble(
