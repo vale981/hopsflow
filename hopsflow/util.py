@@ -115,6 +115,15 @@ class EnsembleValue:
     def __getitem__(self, index):
         return EnsembleValue(self._value[index])
 
+    def slice(self, *args):
+        slc = slice(*args)
+
+        results = []
+        for N, val, σ in self.aggregate_iterator:
+            results.append((N, val[slc], σ[slc]))
+
+        return EnsembleValue(results)
+
     def __len__(self) -> int:
         return len(self._value)
 
