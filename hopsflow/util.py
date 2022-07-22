@@ -95,7 +95,7 @@ class EnsembleValue:
         N, val, σ = self.final_aggregate
 
         return EnsembleValue(
-            [(N, val.mean().copy(), np.sqrt((σ.copy() ** 2).sum() / val.size**2))]
+            [(N, val.mean().copy(), np.sqrt((σ.copy() ** 2).sum() / val.size ** 2))]
         )
 
     @property
