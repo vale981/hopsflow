@@ -148,3 +148,4 @@ cython_debug/
 /setup.py
 /.direnv/
 /hopsflow/gaussflow_two_formulas.c
+/typings/
