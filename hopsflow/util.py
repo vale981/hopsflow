@@ -891,7 +891,8 @@ def fit_α(
     max_sol = scipy.optimize.minimize(
         lambda t: -np.abs(α(np.array([t])))[0], [0], bounds=((0, np.inf),)
     )
-    max = -max_sol.fun[0]
+
+    max = -max_sol.fun
     t_at_max = max_sol.x[0]
 
     t_tail = scipy.optimize.newton(
