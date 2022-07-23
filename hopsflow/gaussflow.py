@@ -6,6 +6,7 @@ import numpy.typing as npt
 from . import util
 from numpy.polynomial import Polynomial
 from .util import BCF, expand_t
+import scipy
 
 
 @dataclass
@@ -33,6 +34,15 @@ class SystemParams:
     # BCF coefficients
     W: np.ndarray = field(init=False)
     G: np.ndarray = field(init=False)
+
+    root_tol: float = 1e-7
+    """
+    The relative tolerance of the roots.
+
+    The roots are being calculated with the numpy polynomial module
+    and then refined with newtons method.  This parameter is passed as
+    ``rtol`` to :any:`scipy.optimize.newton`.
+    """
 
     def __post_init__(self):
         self.t_max = self.α_0.t_max
@@ -114,6 +124,20 @@ def calculate_coefficients(sys: SystemParams) -> tuple[np.ndarray, np.ndarray]:
             """The roots of the polynomial are not unique.
 You can try to alter the number of terms in the expansion of the BCF."""
         )
+
+    # improving the accuracy of the roots seems to be essential
+    p_prime = p.deriv()
+    p_prime_2 = p_prime.deriv()
+    for i, root in enumerate(master_roots):
+        res = scipy.optimize.newton(
+            p,
+            root,
+            p_prime,
+            rtol=sys.root_tol,
+            fprime2=p_prime_2,
+            maxiter=100000,  # we can allow that, there aren't that many roots
+        )
+        master_roots[i] = res
 
     resiquals = f_0(master_roots) / p.deriv()(master_roots)
     return master_roots, resiquals
