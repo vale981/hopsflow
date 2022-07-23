@@ -18,6 +18,7 @@ from numpy.typing import NDArray
 import opt_einsum as oe
 from hops.core.hierarchy_data import HIData
 from hops.core.hierarchy_parameters import HIParams
+import copy
 
 ###############################################################################
 #                          Interface/Parameter Object                         #
@@ -247,6 +248,30 @@ class ThermalParams:
         self.order = order
         self.num_deriv = num_deriv
         self.rand_skip = rand_skip
+
+    @classmethod
+    def from_hi_params(cls, params: HIParams, **kwargs) -> "SystemParams":
+        """Construct a :any:`ThermalParams` object from the HOPS
+        configuration.
+
+
+        The ``kwargs`` are forwarded to the constructor.
+
+        :param params: The :any:`hops.core.hierarchy_parameters`
+            object that holds the HOPS config.
+        """
+
+        ξs = [copy.deepcopy(proc) for proc in params.EtaTherm]
+
+        for proc in ξs:
+            if proc is not None:
+                proc.calc_deriv = True
+
+        return cls(
+            ξs=ξs,
+            τ=params.IntP.t,
+            **kwargs,  # no bcf scale, as this has been built in already
+        )
 
 
 class ThermalRunParams:
@@ -504,6 +529,7 @@ def heat_flow_ensemble(
 def heat_flow_from_data(
     data: HIData,
     *args,
+    thermal_params=Optional[ThermalParams],
     **kwargs,
 ) -> util.EnsembleValue:
     """Calculates the heat flow for an ensemble of trajectories.
@@ -525,6 +551,9 @@ def heat_flow_from_data(
             d.valid_sample_iterator(d.stoc_traj),
             d.valid_sample_iterator(d.aux_states),
             *args,
+            therm_args=(d.valid_sample_iterator(d.rng_seed), thermal_params)
+            if thermal_params
+            else None,
             **(dict(N=data.samples) | kwargs),
         )
 
