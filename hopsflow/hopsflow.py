@@ -529,7 +529,7 @@ def heat_flow_ensemble(
 def heat_flow_from_data(
     data: HIData,
     *args,
-    thermal_params=Optional[ThermalParams],
+    thermal_params: Optional[ThermalParams] = None,
     **kwargs,
 ) -> util.EnsembleValue:
     """Calculates the heat flow for an ensemble of trajectories.
@@ -547,13 +547,16 @@ def heat_flow_from_data(
         if "save" in kwargs:
             kwargs["save"] += "_" + data.get_hi_key_hash()
 
+        if thermal_params is not None:
+            kwargs["therm_args"] = (
+                d.valid_sample_iterator(d.rng_seed),
+                thermal_params,
+            )
+
         return heat_flow_ensemble(
             d.valid_sample_iterator(d.stoc_traj),
             d.valid_sample_iterator(d.aux_states),
             *args,
-            therm_args=(d.valid_sample_iterator(d.rng_seed), thermal_params)
-            if thermal_params
-            else None,
             **(dict(N=data.samples) | kwargs),
         )
 
