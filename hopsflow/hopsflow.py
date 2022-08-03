@@ -508,7 +508,7 @@ def heat_flow_ensemble(
         flow = (
             flow_trajectory_coupling(run, params)  # type: ignore
             if not only_therm
-            else np.zeros(ψ_0.shape[0])
+            else np.zeros((len(params.G), ψ_0.shape[0]))
         )
 
         if thermal is not None:
