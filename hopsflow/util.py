@@ -159,7 +159,9 @@ class EnsembleValue:
             self.insert(value)
 
     def consistency(self, other: Union[EnsembleValue, np.ndarray]) -> float:
-        diff = abs(self[-1] - other[-1])
+        diff = abs(
+            self[-1] - (other[-1] if isinstance(other, self.__class__) else other)
+        )
         return (diff.value < diff.σ).sum() / len(diff.for_bath(0).value) * 100
 
     def integrate(self, τ: np.ndarray) -> EnsembleValue:
