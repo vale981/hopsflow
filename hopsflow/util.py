@@ -29,6 +29,7 @@ import opt_einsum as oe
 import gc
 import math
 import time
+from hops.core.hierarchy_data import HIData
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -1004,3 +1005,33 @@ def expand_t(f):
         return f(self, t)
 
     return wrapped
+
+
+def operator_expectation_from_data(
+    data: HIData,
+    op: Union[np.ndarray, DynamicMatrix],
+    **kwargs,
+) -> EnsembleValue:
+    """Calculates the expectation value of a system observable ``op``.
+
+    The ``kwargs`` is passed on to
+    :any:`util.operator_expectation_ensemble`.
+
+    :param data: The data instance that contains the trajectories.
+        Does not have to be opened yet.
+
+    :returns: the expectation value of the observable ``op`` for each
+              time step
+    """
+
+    with data as d:
+        if "save" in kwargs:
+            kwargs["save"] += "_" + data.get_hi_key_hash()
+
+        return operator_expectation_ensemble(
+            ψs=d.valid_sample_iterator(d.stoc_traj),
+            op=op,
+            t=d.get_time(),
+            normalize=d.get_hi_key().HiP.nonlinear,
+            **(dict(N=d.samples) | kwargs),
+        )
