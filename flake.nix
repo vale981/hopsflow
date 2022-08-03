@@ -15,7 +15,7 @@
         projectDir = ./.;
       };
 
-      shellOverride = (oldAttrs: {
+      shellOverride = (pkgs: oldAttrs: {
         shellHook = ''
 #                    export PYTHONPATH=/home/hiro/src/two_qubit_model/:$PYTHONPATH
                     export PYTHONPATH=/home/hiro/src/hops/:$PYTHONPATH
