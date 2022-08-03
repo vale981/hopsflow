@@ -600,7 +600,7 @@ def integrate_array(
     if err is not None:
         dt = t[1:] - t[:-1]
         err_sum = [
-            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt ** 2)))
+            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt**2)))
             for e in err
         ]
         err_integral = np.sqrt(err_sum).real
