@@ -263,13 +263,15 @@ class ThermalParams:
 
         ξs = [copy.deepcopy(proc) for proc in params.EtaTherm]
 
-        for proc in ξs:
+        for i, proc in enumerate(ξs):
             if proc is not None:
                 proc.calc_deriv = True
+                proc.set_scale(params.SysP.bcf_scale[i])
 
         return cls(
             ξs=ξs,
             τ=params.IntP.t,
+            rand_skip=params.HiP.rand_skip,
             **kwargs,  # no bcf scale, as this has been built in already
         )
 
