@@ -829,7 +829,7 @@ def ensemble_mean(
                 highest_index += 1
 
             gc.collect()
-            time.sleep(gc_sleep)
+            time.sleep(gc_sleep)  # wait for the ray store to catch on
 
         if next_val:
             chunk_ref = ray.put(next_val[0])
@@ -850,8 +850,6 @@ def ensemble_mean(
         processing_refs,
     )
 
-    gc.collect()
-
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
         logging.info(f"Writing cache to: {path}")
@@ -862,7 +860,6 @@ def ensemble_mean(
             f.write(json_meta_info)
 
     del aggregate
-    gc.collect()
 
     return EnsembleValue(results)
 
