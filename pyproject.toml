@@ -11,11 +11,10 @@ python = ">=3.9,<3.11"
 sqlitedict = "^1.7.0"
 numpy = "^1.20.0"
 scipy = "^1.7.3"
-stocproc = { git = "https://github.com/vale981/stocproc" }
 tqdm = "^4.62.3"
 lmfit = "^1.0.3"
 ray = "^1.11.0"
-hops = { git = "git@gitlab.hrz.tu-chemnitz.de:s8896854--tu-dresden.de/hops.git", branch="time_dep_coupling" }
+hops = { git = "git@gitlab.hrz.tu-chemnitz.de:s8896854--tu-dresden.de/hops.git", branch="use_new_stocproc_for_10" }
 opt-einsum = "^3.3.0"
 
 [tool.poetry.dev-dependencies]
