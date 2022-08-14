@@ -116,9 +116,7 @@ class EnsembleValue:
     def __getitem__(self, index):
         return EnsembleValue(self._value[index])
 
-    def slice(self, *args):
-        slc = slice(*args)
-
+    def slice(self, slc: Union[np.ndarray, slice]):
         results = []
         for N, val, σ in self.aggregate_iterator:
             results.append((N, val[slc], σ[slc]))
