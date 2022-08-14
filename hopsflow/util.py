@@ -127,7 +127,7 @@ class EnsembleValue:
         return len(self._value)
 
     def for_bath(self, bath: int):
-        if self.num_baths == 1 and len(self.value.shape) == 1:
+        if self.num_baths == 1 and len(self.value.shape) in [0, 1]:
             return self
 
         return EnsembleValue([(N, val[bath], σ[bath]) for N, val, σ in self._value])
