@@ -161,7 +161,13 @@ class EnsembleValue:
         diff = abs(
             self[-1] - (other[-1] if isinstance(other, self.__class__) else other)
         )
-        return (diff.value < diff.σ).sum() / len(diff.for_bath(0).value) * 100
+
+        diff_val = diff.for_bath(0).value
+        return (
+            (diff.value < diff.σ).sum()
+            / (len(diff_val) if hasattr(diff_val, "__len__") else 1)
+            * 100
+        )
 
     def integrate(self, τ: np.ndarray) -> EnsembleValue:
         """Calculate the antiderivative along a 'time axis' ``τ``."""
