@@ -96,7 +96,7 @@ class EnsembleValue:
         N, val, σ = self.final_aggregate
 
         return EnsembleValue(
-            [(N, val.mean().copy(), np.sqrt((σ.copy() ** 2).sum() / val.size**2))]
+            [(N, val.mean().copy(), np.sqrt((σ.copy() ** 2).sum() / val.size ** 2))]
         )
 
     @property
@@ -605,7 +605,7 @@ def integrate_array(
     if err is not None:
         dt = t[1:] - t[:-1]
         err_sum = [
-            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt**2)))
+            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt ** 2)))
             for e in err
         ]
         err_integral = np.sqrt(err_sum).real
@@ -718,7 +718,7 @@ def ensemble_mean(
     overwrite_cache: bool = False,
     chunk_size: Optional[int] = None,
     in_flight: Optional[int] = None,
-    gc_sleep: float = 0.1,
+    gc_sleep: float = 0,
 ) -> EnsembleValue:
     results = []
 
@@ -775,7 +775,6 @@ def ensemble_mean(
     chunks = {}
 
     in_flight = in_flight or int(ray.available_resources().get("CPU", 0)) * 2
-
     function_on_store = ray.put(function)
 
     highest_index = 0
@@ -828,8 +827,9 @@ def ensemble_mean(
 
                 highest_index += 1
 
-            gc.collect()
-            time.sleep(gc_sleep)  # wait for the ray store to catch on
+            if gc_sleep and gc_sleep > 0:
+                gc.collect()
+                time.sleep(gc_sleep)  # wait for the ray store to catch on
 
         if next_val:
             chunk_ref = ray.put(next_val[0])
