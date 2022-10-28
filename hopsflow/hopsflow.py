@@ -343,7 +343,7 @@ def flow_trajectory_coupling(
     run: HOPSRun,
     params: SystemParams,
 ) -> np.ndarray:
-    r"""Calculates the :math:`\langle L^\dagger \dot{B} + c.c.` part of the
+    r"""Calculates the :math:`\langle L^\dagger \dot{B}\rangle + c.c.` part of the
     energy flow for a single trajectory and for each bath.
 
     :param run: a parameter object for the current trajectory, see :any:`HOPSRun`
