@@ -4,6 +4,9 @@
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
     utils.url = "github:vale981/hiro-flake-utils";
+    poetry2nix.url = "github:nix-community/poetry2nix";
+    utils.inputs.poetry.follows = "poetry2nix";
+    utils.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = { self, utils, nixpkgs, ... }:
