@@ -23,7 +23,6 @@ import scipy.interpolate
 import copy
 import ray
 import numbers
-import matplotlib.pyplot as plt
 from hops.util.dynamic_matrix import DynamicMatrix, ConstantMatrix
 import opt_einsum as oe
 import gc
@@ -96,7 +95,7 @@ class EnsembleValue:
         N, val, σ = self.final_aggregate
 
         return EnsembleValue(
-            [(N, val.mean().copy(), np.sqrt((σ.copy() ** 2).sum() / val.size ** 2))]
+            [(N, val.mean().copy(), np.sqrt((σ.copy() ** 2).sum() / val.size**2))]
         )
 
     @property
@@ -605,7 +604,7 @@ def integrate_array(
     if err is not None:
         dt = t[1:] - t[:-1]
         err_sum = [
-            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt ** 2)))
+            np.concatenate(([0], np.cumsum(((e[1:] ** 2 + e[:-1] ** 2) / 4) * dt**2)))
             for e in err
         ]
         err_integral = np.sqrt(err_sum).real
