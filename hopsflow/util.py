@@ -189,9 +189,14 @@ class EnsembleValue:
     def __add__(
         self, other: Union["EnsembleValue", float, int, np.ndarray]
     ) -> EnsembleValue:
-        if type(self) == type(other):
+        if isinstance(other, EnsembleValue):
             if len(self) != len(other):
                 raise RuntimeError("Can only add values of equal length.")
+
+            if self.num_baths != other.num_baths:
+                raise RuntimeError(
+                    "Can only add values pertaining to an equal number of baths."
+                )
 
             left = self._value
             right = other._value
