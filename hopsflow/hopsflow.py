@@ -18,6 +18,7 @@ from numpy.typing import NDArray
 import opt_einsum as oe
 from hops.core.hierarchy_data import HIData
 from hops.core.hierarchy_parameters import HIParams
+from typing import Callable
 import copy
 
 ###############################################################################
@@ -498,10 +499,37 @@ def heat_flow_ensemble(
     :returns: the value of the flow for each time step
     """
 
-    if therm_args is None and only_therm:
-        raise ValueError("Can't calculate only thermal part if therm_args are None.")
+    flow_worker = make_heat_flow_worker(
+        params, therm_args[1] if therm_args else None, only_therm
+    )
 
-    thermal = therm_args[1] if therm_args else None
+    return util.ensemble_mean(
+        iter(zip(ψ_0s, ψ_1s, therm_args[0]))
+        if therm_args
+        else iter(zip(ψ_0s, ψ_1s, itertools.repeat(0))),
+        flow_worker,
+        **kwargs,
+    )
+
+
+def make_heat_flow_worker(
+    params: SystemParams,
+    thermal: Optional[ThermalParams] = None,
+    only_therm: bool = False,
+) -> Callable[..., np.ndarray]:
+    """Constructs a worker function that takes ``(first hierarchy
+    state, aux states, thermal process seed)`` and returns the flow.
+
+    :param params: a parameter object for the system, see
+        :any:`SystemParams`
+    :param therm: the parameter object for the nonzero temperature,
+        see :any:`ThermalParams`
+    :param only_therm: whether to only calculate the thermal part of
+        the flow
+    """
+
+    if thermal is None and only_therm:
+        raise ValueError("Can't calculate only thermal part if therm_args are None.")
 
     def flow_worker(ψs: tuple[np.ndarray, np.ndarray, int]):
         ψ_0, ψ_1, seed = ψs
@@ -519,13 +547,7 @@ def heat_flow_ensemble(
 
         return flow
 
-    return util.ensemble_mean(
-        iter(zip(ψ_0s, ψ_1s, therm_args[0]))
-        if therm_args
-        else iter(zip(ψ_0s, ψ_1s, itertools.repeat(0))),
-        flow_worker,
-        **kwargs,
-    )
+    return flow_worker
 
 
 def heat_flow_from_data(
@@ -563,6 +585,34 @@ def heat_flow_from_data(
         )
 
 
+def make_interaction_worker(
+    params: SystemParams,
+    thermal: Optional[ThermalParams] = None,
+    power: bool = False,
+):
+    """
+    :param params: a parameter object for the system, see
+        :any:`SystemParams`
+    :param thermal: the thermal object, see :any:`ThermalParams`
+    :param power: whether to calculate the interaction power
+    """
+
+    def interaction_energy_task(
+        ψs: Tuple[np.ndarray, np.ndarray, int],
+    ) -> np.ndarray:
+        ψ_0, ψ_1, seeds = ψs
+        run = HOPSRun(ψ_0, ψ_1, params, power)  # type: ignore
+        energy = interaction_energy_coupling(run, params)  # type: ignore
+
+        if thermal is not None:
+            therm_run = ThermalRunParams(thermal, seeds)  # type: ignore
+            energy += interaction_energy_therm(run, therm_run)
+
+        return energy
+
+    return interaction_energy_task
+
+
 def interaction_energy_ensemble(
     ψ_0s: Iterator[np.ndarray],
     ψ_1s: Iterator[np.ndarray],
@@ -589,20 +639,7 @@ def interaction_energy_ensemble(
 
     thermal = therm_args[1] if therm_args else None
 
-    def interaction_energy_task(
-        ψs: Tuple[np.ndarray, np.ndarray, int],
-    ) -> np.ndarray:
-        ψ_0, ψ_1, seeds = ψs
-
-        run = HOPSRun(ψ_0, ψ_1, params, power)  # type: ignore
-        energy = interaction_energy_coupling(run, params)  # type: ignore
-
-        if thermal is not None:
-            therm_run = ThermalRunParams(thermal, seeds)  # type: ignore
-            energy += interaction_energy_therm(run, therm_run)
-
-        return energy
-
+    interaction_energy_task = make_interaction_worker(params, thermal, power)
     return util.ensemble_mean(
         iter(zip(ψ_0s, ψ_1s, therm_args[0]))
         if therm_args

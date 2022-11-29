@@ -28,6 +28,7 @@ import opt_einsum as oe
 import gc
 import math
 import time
+import pickle
 from hops.core.hierarchy_data import HIData
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
@@ -490,27 +491,18 @@ def operator_expectation(
     return expect
 
 
-def operator_expectation_ensemble(
-    ψs: Iterator[np.ndarray],
+def make_operator_expectation_task(
     op: Union[np.ndarray, DynamicMatrix],
     t: np.ndarray,
     normalize: bool = False,
     real: bool = False,
-    **kwargs,
-) -> EnsembleValue:
-    """Calculates the expecation value of ``op`` as a time series.
-
-    :param ψs: A collection of stochastic trajectories.  Each
-        element should have the shape  ``(time, dim-sys)``.
-    :param op: The operator.
-    :param N: Number of samples to take.
-    :param real: Whether to take the real part.
-
-    All the other kwargs are passed on to :any:`ensemble_mean`.
-
-    :returns: the expectation value
+):
     """
+    Returns a function that takes the first hierarchy states and
+    returns the expectation value of the operator op.
 
+    For the arguments see :any:`operator_expectation_ensemble`.
+    """
     if isinstance(op, ConstantMatrix):
         op = op(0)
 
@@ -542,6 +534,31 @@ def operator_expectation_ensemble(
 
         return sandwhiches
 
+    return op_exp_task
+
+
+def operator_expectation_ensemble(
+    ψs: Iterator[np.ndarray],
+    op: Union[np.ndarray, DynamicMatrix],
+    t: np.ndarray,
+    normalize: bool = False,
+    real: bool = False,
+    **kwargs,
+) -> EnsembleValue:
+    """Calculates the expecation value of ``op`` as a time series.
+
+    :param ψs: A collection of stochastic trajectories.  Each
+        element should have the shape  ``(time, dim-sys)``.
+    :param op: The operator.
+    :param N: Number of samples to take.
+    :param real: Whether to take the real part.
+
+    All the other kwargs are passed on to :any:`ensemble_mean`.
+
+    :returns: the expectation value
+    """
+
+    op_exp_task = make_operator_expectation_task(op, t, normalize, real)
     return ensemble_mean(ψs, op_exp_task, **kwargs)
 
 
@@ -641,6 +658,9 @@ class WelfordAggregator:
 
     @property
     def sample_variance(self) -> np.ndarray:
+        if self.n == 1:
+            return np.zeros_like(self.mean)
+
         return self._m_2 / (self.n - 1)
 
     @property
@@ -650,6 +670,10 @@ class WelfordAggregator:
     @property
     def ensemble_std(self) -> np.ndarray:
         return np.sqrt(self.ensemble_variance)
+
+    @property
+    def ensemble_value(self) -> EnsembleValue:
+        return EnsembleValue([(self.n, self.mean, self.ensemble_std)])
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -706,6 +730,52 @@ def _grouper(n: int, iterable: Iterator[Any]):
 def _ensemble_remote_function(function, chunk: tuple, index: int):
     res = np.array([np.array(function(arg)) for arg in chunk])
     return res, index
+
+
+def get_online_data_path(save: str):
+    return Path("results") / Path(f"online_{save}.npy")
+
+
+def load_online_cache(save: str):
+    path = get_online_data_path(save)
+
+    with path.open("rb") as agg_file:
+        aggregate = pickle.load(agg_file)
+
+    return aggregate.ensemble_value
+
+
+def ensemble_mean_online(
+    args: Any,
+    save: str,
+    function: Callable[..., np.ndarray],
+) -> Optional[EnsembleValue]:
+    path = get_online_data_path(save)
+
+    if args is None:
+        result = None
+    else:
+        result = function(args)
+
+        if np.isnan(np.sum(result)):
+            result = None
+
+    if path.exists():
+        with path.open("rb") as agg_file:
+            aggregate = pickle.load(agg_file)
+            if result is not None:
+                aggregate.update(result)
+
+    else:
+        if result is None:
+            raise RuntimeError("No cache and no result.")
+
+        aggregate = WelfordAggregator(result)
+
+    with path.open("wb") as agg_file:
+        pickle.dump(aggregate, agg_file)
+
+    return aggregate.ensemble_value
 
 
 def ensemble_mean(
