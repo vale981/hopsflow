@@ -38,9 +38,7 @@ EnsembleReturn = Union[Aggregate, list[Aggregate]]
 
 class EnsembleValue:
     def __init__(
-        self,
-        value: Union[Aggregate, list[Aggregate], tuple[np.ndarray, np.ndarray]],
-        track=False,
+        self, value: Union[Aggregate, list[Aggregate], tuple[np.ndarray, np.ndarray]]
     ):
         if (
             isinstance(value, tuple)
@@ -55,17 +53,6 @@ class EnsembleValue:
                 if (isinstance(value, list) or isinstance(value, np.ndarray))
                 else [value]
             )
-
-        self._tracker: Optional[SortedList] = None
-
-        if track:
-            self._tracker = SortedList()
-
-    def has_sample(self, i: int) -> bool:
-        if self._tracker is None:
-            return False  # don't know
-
-        return i in self._tracker
 
     @property
     def final_aggregate(self):
@@ -158,16 +145,7 @@ class EnsembleValue:
 
         return final
 
-    def insert(self, value: Aggregate, i: Optional[int] = None):
-        if self._tracker is not None:
-            if i is None:
-                raise ValueError("Tracking is enabled but no index was supplied.")
-
-            if self.has_sample(i):
-                return
-
-            self._tracker.add(i)
-
+    def insert(self, value: Aggregate):
         where = len(self._value)
         for i, (N, _, _) in enumerate(self._value):
             if N > value[0]:
@@ -176,13 +154,9 @@ class EnsembleValue:
 
         self._value.insert(where, value)
 
-    def insert_multi(self, values: list[Aggregate], i_list: Optional[list[int]] = None):
-        if self._tracker is not None:
-            if i_list is None:
-                raise ValueError("Tracking is enabled but no indices were supplied.")
-
-        for value, i in zip(values, i_list if i_list else itertools.repeat(None)):
-            self.insert(value, i)
+    def insert_multi(self, values: list[Aggregate]):
+        for value in values:
+            self.insert(value)
 
     def consistency(self, other: Union[EnsembleValue, np.ndarray]) -> float:
         diff = abs(
