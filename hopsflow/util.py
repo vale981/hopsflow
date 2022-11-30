@@ -32,6 +32,7 @@ import pickle
 from hops.core.hierarchy_data import HIData
 from sortedcontainers import SortedList
 import portalocker
+import cloudpickle
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -758,15 +759,9 @@ def _ensemble_remote_function(function, chunk: tuple, index: int):
     return res, index
 
 
-def get_online_data_path(save: str):
-    return Path("results") / Path(f"online_{save}.pickle")
-
-
 def load_online_cache(save: str):
-    path = get_online_data_path(save)
-
-    with portalocker.Lock(path, "rb") as agg_file:
-        aggregate = pickle.load(agg_file)
+    with portalocker.Lock(save, "rb") as agg_file:
+        aggregate = cloudpickle.load(agg_file)
 
     return aggregate.ensemble_value
 
@@ -774,7 +769,7 @@ def load_online_cache(save: str):
 def ensemble_mean_online(
     args: Any, save: str, function: Callable[..., np.ndarray], i: Optional[int] = None
 ) -> Optional[EnsembleValue]:
-    path = get_online_data_path(save)
+    path = Path(save)
 
     if args is None:
         result = None
@@ -797,7 +792,7 @@ def ensemble_mean_online(
         aggregate = WelfordAggregator(result, i)
 
     with portalocker.Lock(path, "wb") as agg_file:
-        pickle.dump(aggregate, agg_file)
+        cloudpickle.dump(aggregate, agg_file)
 
     return aggregate.ensemble_value
 

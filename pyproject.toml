@@ -18,6 +18,7 @@ hops = { git = "git@gitlab.hrz.tu-chemnitz.de:s8896854--tu-dresden.de/hops.git",
 opt-einsum = "^3.3.0"
 sortedcontainers = "^2.4.0"
 portalocker = "^2.6.0"
+cloudpickle = "^2.2.0"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.910"
