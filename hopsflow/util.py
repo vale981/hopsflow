@@ -32,7 +32,8 @@ import pickle
 from hops.core.hierarchy_data import HIData
 from sortedcontainers import SortedList
 import portalocker
-import cloudpickle
+import os
+from numpy.typing import NDArray
 
 Aggregate = tuple[int, np.ndarray, np.ndarray]
 EnsembleReturn = Union[Aggregate, list[Aggregate]]
@@ -651,15 +652,48 @@ def integrate_array(
 
 class WelfordAggregator:
     __slots__ = ["n", "mean", "_m_2", "_tracker"]
+    _chunk_size = 1
 
     def __init__(self, first_value: np.ndarray, i: Optional[int] = None):
         self.n = 1
         self.mean = first_value
         self._m_2 = np.zeros_like(first_value)
 
-        self._tracker: Optional[SortedList] = None
+        self._tracker: Optional[NDArray] = None
         if i is not None:
-            self._tracker = SortedList([i])
+            self._tracker = np.zeros(i + 100, dtype=bool)
+            self._tracker[i] = True
+
+    def dump(self, path: str):
+        save = dict(
+            n=self.n, mean=self.mean, m_2=self._m_2, variance=self.sample_variance
+        )
+        if self._tracker is not None:
+            save["tracker"] = self._tracker
+
+        with open(path, "wb") as f:
+            portalocker.lock(f, portalocker.LockFlags.EXCLUSIVE)
+            portalocker.lock(f, portalocker.LockFlags.EXCLUSIVE)
+            np.savez(f, **save)
+            portalocker.unlock(f)
+
+    @classmethod
+    def from_dump(cls, path: str):
+        instance = cls(np.empty(1))
+        with portalocker.Lock(path, "rb", flags=portalocker.LockFlags.EXCLUSIVE) as f:
+            dump_file = np.load(f)
+
+            instance.n = dump_file["n"]
+            instance.mean = dump_file["mean"]
+            instance._m_2 = dump_file["m_2"]
+
+            if "tracker" in dump_file:
+                instance._tracker = dump_file["tracker"]
+
+            else:
+                instance._tracker = None
+
+        return instance
 
     def update(self, new_value: np.ndarray, i: Optional[int] = None):
         if self._tracker is not None:
@@ -669,7 +703,12 @@ class WelfordAggregator:
             if self.has_sample(i):
                 return
 
-            self._tracker.add(i)
+            if self._tracker.size <= i:
+                self._tracker = np.pad(
+                    self._tracker, (0, self._chunk_size), constant_values=False
+                )
+
+            self._tracker[i] = True
 
         self.n += 1
         delta = new_value - self.mean
@@ -681,7 +720,7 @@ class WelfordAggregator:
         if self._tracker is None:
             return False  # don't know
 
-        return i in self._tracker
+        return self._tracker.size > i and self._tracker[i]
 
     @property
     def sample_variance(self) -> np.ndarray:
@@ -759,13 +798,6 @@ def _ensemble_remote_function(function, chunk: tuple, index: int):
     return res, index
 
 
-def load_online_cache(save: str):
-    with portalocker.Lock(save, "rb") as agg_file:
-        aggregate = cloudpickle.load(agg_file)
-
-    return aggregate.ensemble_value
-
-
 def ensemble_mean_online(
     args: Any, save: str, function: Callable[..., np.ndarray], i: Optional[int] = None
 ) -> Optional[EnsembleValue]:
@@ -780,10 +812,8 @@ def ensemble_mean_online(
             result = None
 
     if path.exists():
-        with portalocker.Lock(path, "rb") as agg_file:
-            aggregate: WelfordAggregator = pickle.load(agg_file)
-            if result is not None:
-                aggregate.update(result, i)
+        aggregate = WelfordAggregator.from_dump(str(path))
+        aggregate.update(result, i)
 
     else:
         if result is None:
@@ -791,9 +821,7 @@ def ensemble_mean_online(
 
         aggregate = WelfordAggregator(result, i)
 
-    with portalocker.Lock(path, "wb") as agg_file:
-        cloudpickle.dump(aggregate, agg_file)
-
+    aggregate.dump(str(path))
     return aggregate.ensemble_value
 
 
