@@ -30,7 +30,6 @@ import math
 import time
 import pickle
 from hops.core.hierarchy_data import HIData
-from sortedcontainers import SortedList
 import portalocker
 import os
 from numpy.typing import NDArray
