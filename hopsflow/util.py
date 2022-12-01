@@ -651,7 +651,7 @@ def integrate_array(
 
 class WelfordAggregator:
     __slots__ = ["n", "mean", "_m_2", "_tracker"]
-    _chunk_size = 1
+    _chunk_size = 100
 
     def __init__(self, first_value: np.ndarray, i: Optional[int] = None):
         self.n = 1
@@ -702,9 +702,10 @@ class WelfordAggregator:
             if self.has_sample(i):
                 return
 
-            if self._tracker.size <= i:
+            Δ = i - self._tracker.size
+            if Δ >= 0:
                 self._tracker = np.pad(
-                    self._tracker, (0, self._chunk_size), constant_values=False
+                    self._tracker, (0, self._chunk_size + Δ), constant_values=False
                 )
 
             self._tracker[i] = True
