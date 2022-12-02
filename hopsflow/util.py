@@ -292,6 +292,44 @@ class EnsembleValue:
 
     __rmul__ = __mul__
 
+    def __truediv__(self, other: Union["EnsembleValue", float, int, np.ndarray]):
+        if (
+            isinstance(other, float)
+            or isinstance(other, int)
+            or isinstance(other, np.ndarray)
+        ):
+            return EnsembleValue(
+                [(N, val / other, np.abs(σ / other)) for N, val, σ in self._value]
+            )
+
+        if type(self) == type(other):
+            if len(self) != len(other):
+                raise RuntimeError("Can only multiply values of equal length.")
+
+            left = self._value
+            right = other._value
+
+            out = []
+
+            for left_i, right_i in zip(left, right):
+                if left_i[0] != right_i[0]:
+                    raise RuntimeError("Can only divide equal sample counts.")
+
+                out.append(
+                    (
+                        left_i[0],
+                        left_i[1] / right_i[1],
+                        np.sqrt(
+                            (left_i[2] / right_i[1]) ** 2
+                            + (left_i[1] / (right_i[1]) ** 2 * right_i[2]) ** 2
+                        ).real,
+                    )
+                )
+
+            return EnsembleValue(out)
+
+        return NotImplemented
+
     def __sub__(
         self, other: Union["EnsembleValue", float, int, np.ndarray]
     ) -> "EnsembleValue":
@@ -680,9 +718,9 @@ class WelfordAggregator:
     def from_dump(cls, path: str):
         instance = cls(np.empty(1))
         with portalocker.Lock(path, "rb", flags=portalocker.LockFlags.EXCLUSIVE) as f:
-            dump_file = np.load(f)
+            dump_file = np.load(f, allow_pickle=True)
 
-            instance.n = dump_file["n"]
+            instance.n = int(dump_file["n"])
             instance.mean = dump_file["mean"]
             instance._m_2 = dump_file["m_2"]
 
