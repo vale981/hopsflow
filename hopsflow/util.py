@@ -96,11 +96,14 @@ class EnsembleValue:
 
     @property
     def mean(self):
-        N, val, σ = self.final_aggregate
+        values = []
 
-        return EnsembleValue(
-            [(N, val.mean().copy(), np.sqrt((σ.copy() ** 2).sum() / val.size**2))]
-        )
+        for N, val, σ in self.aggregate_iterator:
+            values.append(
+                (N, val.mean().copy(), np.sqrt((σ.copy() ** 2).sum() / val.size**2))
+            )
+
+        return EnsembleValue(values)
 
     @property
     def max(self):
