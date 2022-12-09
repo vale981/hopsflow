@@ -872,13 +872,17 @@ def ensemble_mean_online(
     return aggregate.ensemble_value
 
 
-def get_online_values_from_cache(path):
+def get_all_snaphot_paths(path):
     path = Path(path)
     all_versions = list(path.parent.glob(path.stem + "*" + path.suffix))
 
     final = all_versions[0]
     all_versions = all_versions[1:] + [final]
+    return all_versions
 
+
+def get_online_values_from_cache(path):
+    all_versions = get_all_snaphot_paths(path)
     vals = []
 
     for path in all_versions:
