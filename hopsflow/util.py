@@ -840,7 +840,7 @@ def ensemble_mean_online(
     save: str,
     function: Callable[..., np.ndarray],
     i: Optional[int] = None,
-    every: Optional[int] = None,
+    every: Optional[Union[int, Callable[[int], bool]]] = None,
 ) -> Optional[EnsembleValue]:
     path = Path(save)
 
@@ -863,7 +863,9 @@ def ensemble_mean_online(
         aggregate = WelfordAggregator(result, i)
 
     aggregate.dump(str(path))
-    if every is not None and aggregate.n % every == 0:
+    if every is not None and (
+        aggregate.n % every == 0 if isintance(every, int) else every(aggregate.n)
+    ):
         path.with_stem(f"{path.stem}_{aggregate.n}")
         aggregate.dump(str(path))
 
