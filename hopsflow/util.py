@@ -306,14 +306,18 @@ class EnsembleValue:
             if len(self) != len(other):
                 raise RuntimeError("Can only multiply values of equal length.")
 
-            left = self._value
-            right = other._value
+            left = copy.deepcopy(self._value)
+            right = copy.deepcopy(other._value)
 
             out = []
 
             for left_i, right_i in zip(left, right):
-                if left_i[0] != right_i[0]:
-                    raise RuntimeError("Can only divide equal sample counts.")
+                if left_i[0] < right_i[0]:
+                    right_i[2] *= np.sqrt(right_i[0] / left_i[0])
+                    right_i[0] = left_i[0]
+                if left_i[0] > right_i[0]:
+                    left_i[2] *= np.sqrt(left_i[0] / right_i[0])
+                    left_i[0] = right_i[0]
 
                 out.append(
                     (
