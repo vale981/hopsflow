@@ -864,10 +864,10 @@ def ensemble_mean_online(
 
     aggregate.dump(str(path))
     if every is not None and (
-        aggregate.n % every == 0 if isintance(every, int) else every(aggregate.n)
+        aggregate.n % every == 0 if isinstance(every, int) else every(aggregate.n)
     ):
-        path.with_stem(f"{path.stem}_{aggregate.n}")
-        aggregate.dump(str(path))
+        snapshot_path = path.with_stem(f"{path.stem}_{aggregate.n}")
+        aggregate.dump(str(snapshot_path))
 
     return aggregate.ensemble_value
 
