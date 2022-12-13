@@ -309,12 +309,13 @@ class EnsembleValue:
             if len(self) != len(other):
                 raise RuntimeError("Can only multiply values of equal length.")
 
-            left = copy.deepcopy(self._value)
-            right = copy.deepcopy(other._value)
+            left = list(copy.deepcopy(self._value))
+            right = list(copy.deepcopy(other._value))
 
             out = []
 
             for left_i, right_i in zip(left, right):
+                left_i, right_i = list(left_i), list(right_i)
                 if left_i[0] < right_i[0]:
                     right_i[2] *= np.sqrt(right_i[0] / left_i[0])
                     right_i[0] = left_i[0]
@@ -882,7 +883,6 @@ def ensemble_mean_online(
 def get_all_snaphot_paths(path):
     path = Path(path)
     all_versions = list(path.parent.glob(path.stem + "*" + path.suffix))
-
     final = all_versions[0]
     all_versions = all_versions[1:] + [final]
     return all_versions
@@ -895,7 +895,7 @@ def get_online_values_from_cache(path):
     for path in all_versions:
         agg = WelfordAggregator.from_dump(str(path))
         vals.append([agg.n, agg.mean, agg.ensemble_std])
-
+    vals.sort(key=lambda el: el[0])
     return EnsembleValue(vals)
 
 
