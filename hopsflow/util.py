@@ -873,7 +873,6 @@ def ensemble_mean_online(
 
     if save is not None:
         if every is None:
-            print("DUMP")
             aggregator.dump(save)
         elif (
             aggregator.n % every == 0 if isinstance(every, int) else every(aggregator.n)
