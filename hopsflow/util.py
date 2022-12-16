@@ -845,12 +845,12 @@ def _ensemble_remote_function(function, chunk: tuple, index: int):
 
 def ensemble_mean_online(
     args: Any,
-    save: str,
     function: Callable[..., np.ndarray],
+    save: Optional[str] = None,
     i: Optional[int] = None,
     every: Optional[Union[int, Callable[[int], bool]]] = None,
+    aggregator: Optional[WelfordAggregator] = None,
 ) -> Optional[EnsembleValue]:
-    path = Path(save)
 
     if args is None:
         result = None
@@ -860,24 +860,29 @@ def ensemble_mean_online(
         if np.isnan(np.sum(result)):
             result = None
 
-    if path.exists():
-        aggregate = WelfordAggregator.from_dump(str(path))
-        aggregate.update(result, i)
+    if aggregator is None and save and Path(save).exists():
+        aggregator = WelfordAggregator.from_dump(save)
 
+    if result is None:
+        raise RuntimeError("No result available.")
+
+    if aggregator is None:
+        aggregator = WelfordAggregator(result, i)
     else:
-        if result is None:
-            raise RuntimeError("No cache and no result.")
+        aggregator.update(result, i)
 
-        aggregate = WelfordAggregator(result, i)
+    if save is not None:
+        if every is None:
+            print("DUMP")
+            aggregator.dump(save)
+        elif (
+            aggregator.n % every == 0 if isinstance(every, int) else every(aggregator.n)
+        ):
+            path = Path(save)
+            snapshot_path = path.with_stem(f"{path.stem}_{aggregator.n}")
+            aggregator.dump(str(snapshot_path))
 
-    aggregate.dump(str(path))
-    if every is not None and (
-        aggregate.n % every == 0 if isinstance(every, int) else every(aggregate.n)
-    ):
-        snapshot_path = path.with_stem(f"{path.stem}_{aggregate.n}")
-        aggregate.dump(str(snapshot_path))
-
-    return aggregate.ensemble_value
+    return aggregator
 
 
 def get_all_snaphot_paths(path):
