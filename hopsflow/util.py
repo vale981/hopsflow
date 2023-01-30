@@ -197,7 +197,10 @@ class EnsembleValue:
     ) -> EnsembleValue:
         if isinstance(other, EnsembleValue):
             if len(self) != len(other):
-                raise RuntimeError("Can only add values of equal length.")
+                logging.warn(
+                    "Adding values with unequal snapshot count discards the snapshots."
+                )
+                return self[-1] + other[-1]
 
             if self.num_baths != other.num_baths:
                 raise RuntimeError(
