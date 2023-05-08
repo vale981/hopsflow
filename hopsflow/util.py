@@ -18,7 +18,6 @@ import hashlib
 import logging
 import json
 from functools import singledispatch, singledispatchmethod
-from scipy.stats import NumericalInverseHermite
 import scipy.interpolate
 import copy
 import ray
