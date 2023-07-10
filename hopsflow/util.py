@@ -269,7 +269,11 @@ class EnsembleValue:
 
         if type(self) == type(other):
             if len(self) != len(other):
-                raise RuntimeError("Can only multiply values of equal length.")
+                logging.warn(
+                    "Multiplying values with unequal snapshot count discards the snapshots."
+                )
+
+                return self[-1] * other[-1]
 
             left = self._value
             right = other._value
@@ -309,7 +313,11 @@ class EnsembleValue:
 
         if type(self) == type(other):
             if len(self) != len(other):
-                raise RuntimeError("Can only multiply values of equal length.")
+                logging.warn(
+                    "Dividing values with unequal snapshot count discards the snapshots."
+                )
+
+                return self[-1] / other[-1]
 
             left = list(copy.deepcopy(self._value))
             right = list(copy.deepcopy(other._value))
