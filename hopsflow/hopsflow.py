@@ -633,7 +633,7 @@ def interaction_energy_ensemble(
     :param power: whether to calculate the interaction power
 
 
-    The ``**kwargs`` are passed to :any:`hopsflow.utility.ensemble_mean`.
+    The ``**kwargs`` are passed to :any:`hopsflow.util.ensemble_mean`.
     :returns: the value of the interaction energy (or power) for each time step
     """
 
