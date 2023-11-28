@@ -21,7 +21,7 @@
       shellOverride = (pkgs: oldAttrs: {
         shellHook = ''
           #                    export PYTHONPATH=/home/hiro/src/two_qubit_model/:$PYTHONPATH
-                              export PYTHONPATH=/home/hiro/src/hops/:$PYTHONPATH
+          #                    export PYTHONPATH=/home/hiro/src/hops/:$PYTHONPATH
           #                    export PYTHONPATH=/home/hiro/src/hopsflow/:$PYTHONPATH
           #                    export PYTHONPATH=/home/hiro/src/stocproc/:$PYTHONPATH
         '';
