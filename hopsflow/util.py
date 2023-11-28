@@ -38,6 +38,15 @@ EnsembleReturn = Union[Aggregate, list[Aggregate]]
 
 
 class EnsembleValue:
+    """A data container to hold data that results from monte-carlo
+    simulations.
+
+    It supports saving multiple snapshots at different sample sizes,
+    recording the variances accordingly.
+
+    Standard arithmetic operations, as well as integration is supported.
+    """
+
     def __init__(
         self, value: Union[Aggregate, list[Aggregate], tuple[np.ndarray, np.ndarray]]
     ):
@@ -450,7 +459,6 @@ class BCF:
         factors: Optional[np.ndarray] = None,
         exponents: Optional[np.ndarray] = None,
     ):
-
         #: the maximum simulation time
         self.t_max = t_max
 
@@ -706,6 +714,23 @@ def integrate_array(
 
 
 class WelfordAggregator:
+    """
+    A helper class to calculate means and variances on datasets
+    incremenally (online) in a numerically stable fashion.
+
+    See also the `Wikipedia article
+    <https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm>`_.
+
+    This implementation features serialization to numpy saves and
+    optionally keeps track of sample indices to avoid accumulating the
+    same value twice.
+
+    :param first_value: the first value to aggregate
+    :param i: The sample index associated with the value. If no sample
+              index is provided, sample tracking is _disabled_ for the
+              instance.
+    """
+
     __slots__ = ["n", "mean", "_m_2", "_tracker"]
     _chunk_size = 100
 
@@ -720,6 +745,10 @@ class WelfordAggregator:
             self._tracker[i] = True
 
     def dump(self, path: str):
+        """
+        Serialize the instance into a file under ``path`` using
+        :any:`numpy.save`.
+        """
         save = dict(
             n=self.n, mean=self.mean, m_2=self._m_2, variance=self.sample_variance
         )
@@ -733,6 +762,8 @@ class WelfordAggregator:
 
     @classmethod
     def from_dump(cls, path: str):
+        """Resurrect the instance from the dump under ``path``."""
+
         instance = cls(np.empty(1))
         with portalocker.Lock(path, "rb", flags=portalocker.LockFlags.EXCLUSIVE) as f:
             dump_file = np.load(f, allow_pickle=True)
@@ -750,6 +781,13 @@ class WelfordAggregator:
         return instance
 
     def update(self, new_value: np.ndarray, i: Optional[int] = None):
+        """Update mean and variance with a ``new_value`` with the
+        sample index ``i``.
+
+        Attempting to update without a sample index if tracking is
+        enabled results in an error.
+        """
+
         if self._tracker is not None:
             if i is None:
                 raise ValueError("Tracking is enabled but no index was supplied.")
@@ -772,6 +810,8 @@ class WelfordAggregator:
         self._m_2 += np.abs(delta) * np.abs(delta2)
 
     def has_sample(self, i: int) -> bool:
+        """Whether the sample with index ``i`` has been accumulated so far."""
+
         if self._tracker is None:
             return False  # don't know
 
@@ -779,6 +819,11 @@ class WelfordAggregator:
 
     @property
     def sample_variance(self) -> np.ndarray:
+        """
+        The empirical sample variance.  (:math:`\sqrt{N-1}`
+        normalization.)
+        """
+
         if self.n == 1:
             return np.zeros_like(self.mean)
 
@@ -786,14 +831,18 @@ class WelfordAggregator:
 
     @property
     def ensemble_variance(self) -> np.ndarray:
+        """The sample variance."""
+
         return self.sample_variance / self.n
 
     @property
     def ensemble_std(self) -> np.ndarray:
+        """The ensemble standard deviation."""
         return np.sqrt(self.ensemble_variance)
 
     @property
     def ensemble_value(self) -> EnsembleValue:
+        """Convert the instance to an :any:`EnsembleValue`."""
         return EnsembleValue([(self.n, self.mean, self.ensemble_std)])
 
 
@@ -861,7 +910,6 @@ def ensemble_mean_online(
     every: Optional[Union[int, Callable[[int], bool]]] = None,
     aggregator: Optional[WelfordAggregator] = None,
 ) -> Optional[EnsembleValue]:
-
     if args is None:
         result = None
     else:
