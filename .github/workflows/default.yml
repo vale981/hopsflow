@@ -10,12 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: actions
     steps:
-    - uses: actions/checkout@v2
-
-    - uses: cachix/install-nix-action@v15
+    - uses: actions/checkout@v3
+    - uses: cachix/install-nix-action@v22
       with:
-        extra_nix_config: |
-          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+        github_access_token: ${{ secrets.GITHUB_TOKEN }}
     - run: nix build -L
     - run: nix develop -c bash -c "cd docs && make html && cd build/html && touch .nojekyll"
     - uses: actions/upload-artifact@v2
