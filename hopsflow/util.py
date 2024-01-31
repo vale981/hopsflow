@@ -228,7 +228,7 @@ class EnsembleValue:
 
     def consistency(self, other: Union[EnsembleValue, np.ndarray]) -> float:
         """
-        Determines weather two EnsembleValues are consistent by
+        Determines whether two EnsembleValues are consistent by
         checking whether their last values are within the standard
         deviation of each other.
         """
